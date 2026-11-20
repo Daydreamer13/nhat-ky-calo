@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Nhật Ký Calo</title>
+  <rect width="64" height="64" rx="15" fill="#26804D"/>
+  <g fill="#EE8A7A"><circle cx="32" cy="12.6" r="8.2"/><circle cx="40.94" cy="19.1" r="8.2"/><circle cx="37.53" cy="29.6" r="8.2"/><circle cx="26.47" cy="29.6" r="8.2"/><circle cx="23.06" cy="19.1" r="8.2"/></g>
+  <circle cx="32" cy="22" r="6.4" fill="#F6C343"/>
+  <path fill="#FFFFFF" d="M9 37.5a2.5 2.5 0 0 1 2.5-2.5h41a2.5 2.5 0 0 1 2.5 2.5c0 11.5-10 19-23 19s-23-7.5-23-19z"/>
+</svg>

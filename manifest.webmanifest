@@ -1,0 +1,22 @@
+{
+  "name": "Nhật Ký Calo",
+  "short_name": "Nhật Ký Calo",
+  "description": "Chụp bữa ăn là biết ngay bao nhiêu calo. Nhật ký ăn uống nhẹ nhàng để giảm cân mỗi ngày.",
+  "lang": "vi",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F0F6EA",
+  "theme_color": "#DCEEF3",
+  "categories": ["health", "lifestyle", "food"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Gõ tên món", "short_name": "Gõ món", "url": "./index.html?do=text", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

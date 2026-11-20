@@ -1,0 +1,5 @@
+# Dữ liệu mẫu và file nháp chỉ dùng khi phát triển: không đưa lên mạng.
+_preview/
+
+# Cấu hình phiên làm việc của công cụ lập trình
+.claude/

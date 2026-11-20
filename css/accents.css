@@ -1,0 +1,91 @@
+/* =========================================================================
+   MÀU HOA — bốn bảng màu cho "hoa và nắng" của khu vườn.
+   Lá, chữ, nước và màu "vượt mức" không bao giờ đổi: chỉ họ --sun* / --bloom*
+   (cùng --halo, --sun-glow, --on-sun và ánh sáng của bóng đổ ban đêm) đổi theo.
+
+   a1  Hướng dương  — vàng nắng + nụ san hô (mặc định, nằm sẵn trong :root)
+   a2  Hoa đào      — hồng đào + nụ đỏ thắm
+   a3  Oải hương    — tím oải hương + nụ tím thạch anh
+   a4  Hoa giấy     — tím hồng hoa giấy + nụ cánh sen đậm
+   ========================================================================= */
+
+/* --- a2 · Hoa đào ----------------------------------------------------- */
+:root[data-accent="a2"] {
+  --sun: #F68B9C;
+  --sun-soft: #FEE4EA;
+  --sun-ink: #9A2140;
+  --on-sun: #4F0E1C;
+  --sun-glow: rgba(255, 224, 231, .95);
+  --halo: #FDDBE3;
+  --bloom: #DC4A62;
+  --bloom-light: #F8B5BE;
+}
+:root[data-accent="a2"][data-theme="dark"] {
+  --sun: #FFA4B3;
+  --sun-soft: #4F2A38;
+  --sun-ink: #FFC8CF;
+  --on-sun: #4C0C1A;
+  --sun-glow: rgba(255, 164, 179, .07);
+  --halo: rgba(255, 164, 179, .10);
+  --bloom: #EE627A;
+  --bloom-light: #F9B6C1;
+  --shadow-float: 0 0 0 1px rgba(255, 164, 179, .25), 0 10px 26px -6px rgba(255, 164, 179, .35);
+  --shadow-note: 0 0 26px -6px rgba(255, 164, 179, .28), 0 12px 22px -14px rgba(0, 0, 0, .7);
+  --shadow-cam: drop-shadow(0 0 14px rgba(255, 164, 179, .4));
+}
+
+/* --- a3 · Oải hương --------------------------------------------------- */
+:root[data-accent="a3"] {
+  --sun: #A88BE8;
+  --sun-soft: #EAE1FC;
+  --sun-ink: #55389F;
+  --on-sun: #22114F;
+  --sun-glow: rgba(234, 226, 255, .95);
+  --halo: #E4DAFA;
+  --bloom: #A662CF;
+  --bloom-light: #D9BDF0;
+}
+:root[data-accent="a3"][data-theme="dark"] {
+  --sun: #BCA6F7;
+  --sun-soft: #37315F;
+  --sun-ink: #DACEFF;
+  --on-sun: #21104D;
+  --sun-glow: rgba(188, 166, 247, .08);
+  --halo: rgba(188, 166, 247, .11);
+  --bloom: #C492EA;
+  --bloom-light: #E2CBF5;
+  --shadow-float: 0 0 0 1px rgba(188, 166, 247, .25), 0 10px 26px -6px rgba(188, 166, 247, .35);
+  --shadow-note: 0 0 26px -6px rgba(188, 166, 247, .28), 0 12px 22px -14px rgba(0, 0, 0, .7);
+  --shadow-cam: drop-shadow(0 0 14px rgba(188, 166, 247, .4));
+}
+
+/* --- a4 · Hoa giấy ---------------------------------------------------- */
+:root[data-accent="a4"] {
+  --sun: #D563BC;
+  --sun-soft: #F8E2F5;
+  --sun-ink: #84206E;
+  --on-sun: #3D0736;
+  --sun-glow: rgba(248, 224, 246, .95);
+  --halo: #F3D6F0;
+  --bloom: #B5329A;
+  --bloom-light: #EBA9DC;
+}
+:root[data-accent="a4"][data-theme="dark"] {
+  --sun: #F08AD4;
+  --sun-soft: #472648;
+  --sun-ink: #FBC0EC;
+  --on-sun: #41073A;
+  --sun-glow: rgba(240, 138, 212, .08);
+  --halo: rgba(240, 138, 212, .11);
+  --bloom: #DC55B8;
+  --bloom-light: #F3B5E1;
+  --shadow-float: 0 0 0 1px rgba(240, 138, 212, .25), 0 10px 26px -6px rgba(240, 138, 212, .35);
+  --shadow-note: 0 0 26px -6px rgba(240, 138, 212, .28), 0 12px 22px -14px rgba(0, 0, 0, .7);
+  --shadow-cam: drop-shadow(0 0 14px rgba(240, 138, 212, .4));
+}
+
+/* --- ô chọn màu trong Cài đặt (giống nhau ở cả hai giao diện) ------------- */
+.swatch[data-accent-swatch="a1"] { --sw: linear-gradient(140deg, #FBDD7A, #F2B62B); }
+.swatch[data-accent-swatch="a2"] { --sw: linear-gradient(140deg, #FBB0BC, #EE6F88); }
+.swatch[data-accent-swatch="a3"] { --sw: linear-gradient(140deg, #C4AEF5, #9272DB); }
+.swatch[data-accent-swatch="a4"] { --sw: linear-gradient(140deg, #E588D0, #C245A6); }

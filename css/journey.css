@@ -1,0 +1,149 @@
+/* ==========================================================================
+   Nhật Ký Calo — màn "Hành trình" (bổ sung cho phần HÀNH TRÌNH của app.css).
+   Chỉ dùng token của app.css nên tự đổi theo sáng/tối.
+   ========================================================================== */
+
+/* chữ chỉ dành cho trình đọc màn hình */
+.j-sr, .trail__stop.j-sr {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+  overflow: hidden; clip: rect(0 0 0 0); -webkit-clip-path: inset(50%); clip-path: inset(50%); white-space: nowrap; transform: none;
+}
+
+.screen[data-tab="journey"] .page-title { overflow-wrap: anywhere; }
+.screen[data-tab="journey"] .section-head { align-items: baseline; }
+.screen[data-tab="journey"] .section-head .section-meta { text-align: right; }
+.screen[data-tab="journey"] .section-head .section-meta.nowrap { flex: none; }
+.screen[data-tab="journey"] .section-title { min-width: 0; overflow-wrap: anywhere; }
+.screen[data-tab="journey"] .section-title svg { align-self: flex-start; margin-top: .3em; }
+
+/* --- cây hoa ------------------------------------------------------------ */
+.garden__grass { fill: none; stroke: var(--leaf-light); stroke-width: 2; stroke-linecap: round; }
+.garden__bug { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; }
+.garden__head { right: 46%; }
+.garden__title { overflow-wrap: anywhere; }
+.garden__count span { white-space: nowrap; }
+.stages { align-items: stretch; }
+.stage { justify-content: flex-start; min-width: 0; }
+.stage__name { display: flex; flex-direction: column; align-items: center; line-height: 1.2; text-align: center; }
+
+/* --- cân nặng ----------------------------------------------------------- */
+.weight__top .section-title { flex: 1; }
+.weight__top .btn { flex: none; white-space: nowrap; }
+.weight__path { min-width: 0; }
+.weight__pt { min-width: 0; }
+.weight__pt--now { white-space: nowrap; }
+.weight__sum { text-wrap: balance; }
+
+/* chặng đường: nhãn "đang ở đây" trượt theo vị trí, không bao giờ tràn mép */
+.trail { padding-top: 2px; }
+.trail__here {
+  position: relative; align-self: flex-start; max-width: 100%;
+  margin: 0 0 24px calc(var(--here) * 100%); transform: translateX(calc(var(--here) * -100%));
+  padding: 5px 12px; border-radius: var(--r-pill); background: var(--leaf-tint); color: var(--leaf-ink);
+  font-size: var(--fs-sm); font-weight: 800; line-height: 1.35; white-space: nowrap;
+}
+.trail__here b { font: 700 var(--fs-base)/1.2 var(--font-display); color: var(--ink); }
+.trail__here::after {
+  content: ""; position: absolute; top: calc(100% - 6px); left: clamp(15px, calc(var(--here) * 100%), calc(100% - 15px));
+  width: 10px; height: 10px; border-radius: 2px; background: inherit; transform: translateX(-50%) rotate(45deg);
+}
+.trail__you { left: calc(var(--here) * 100%); }             /* cùng vị trí với nhãn; không chồng lên bông hoa đích */
+.trail.is-home .trail__you { display: none; }
+.trail.is-home .trail__here { margin-bottom: 14px; }
+.trail__heart { width: 12px; height: 12px; fill: var(--bloom); }
+.trail__stone.has-gift:not(.is-done) { box-shadow: inset 0 0 0 2.5px var(--bloom-light); }
+.trail--dense .trail__stone:not(.trail__stone--goal) { width: 16px; height: 16px; }
+.trail--dense .trail__stone .icon { width: 9px; height: 9px; }
+.trail--dense .trail__heart { width: 9px; height: 9px; }
+
+/* biểu đồ: vạch đích xanh dịu, đường chấm ước tính, nhãn số mới nhất */
+.chart__grid { fill: none; }
+.chart__goal { stroke: var(--leaf); stroke-opacity: .85; }
+.chart__goal-label { fill: var(--leaf-ink); }
+.chart__proj { fill: none; stroke: var(--leaf); stroke-width: 2.6; stroke-dasharray: .1 6.5; stroke-linecap: round; }
+.chart__now-label { font: 700 var(--fs-base) var(--font-display); fill: var(--ink); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.chart__axis--proj { fill: var(--ink-2); }
+.chart__note { display: flex; align-items: center; gap: var(--s2); font-size: var(--fs-xs); font-weight: 700; color: var(--ink-2); line-height: 1.35; }
+.chart__note i { flex: none; width: 22px; height: 0; border-top: 3px dotted var(--leaf); }
+
+/* --- quà hẹn: mỗi món một hàng, gắn với mốc của nó ------------------------- */
+.gifts { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.gift { flex-direction: row; align-items: center; gap: var(--s3); padding: 10px 14px 10px 10px; border-radius: var(--r-lg); text-align: left; overflow: visible; }
+.gift__art { flex: none; display: grid; place-items: center; width: 62px; height: 62px; border-radius: var(--r-md); background: var(--leaf-tint); }
+.gift__art svg { width: 54px; height: 54px; }
+.gift.is-locked .gift__art { opacity: 1; }
+.gift.is-open .gift__art { background: var(--surface); }
+.gift__body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+.gift__flap, .gift.is-open .gift__flap { align-self: auto; margin: 0; padding: 0; border: 0; background: none; line-height: 1.35; }
+.gift.is-open .gift__flap { color: var(--sun-ink); }
+.gift__name { font-size: var(--fs-md); overflow-wrap: anywhere; text-wrap: wrap; }
+.gift__state { gap: 4px; line-height: 1.4; }
+.gift-empty { display: flex; align-items: center; gap: var(--s3); padding: 12px 12px 12px 16px; border-radius: var(--r-lg); box-shadow: inset 0 0 0 1.5px var(--leaf-soft); }
+.gift-empty p { flex: 1; min-width: 0; font-size: var(--fs-sm); font-weight: 700; color: var(--ink-2); line-height: 1.45; }
+.gift-empty .btn { flex: none; gap: 4px; white-space: nowrap; }
+
+/* --- tuần này ----------------------------------------------------------- */
+.week-chart { display: flex; flex-direction: column; gap: var(--s3); }
+.bars { padding-top: 0; }                                   /* cột và vạch mục tiêu cùng một thang đo */
+.bars__target { pointer-events: none; }
+.bars__target.is-left b { right: auto; left: 0; }
+.bars__target.is-off b { display: none; }
+.bar__fill { position: relative; display: flex; justify-content: center; min-height: 6px; }
+.bar.is-partial .bar__fill { background: none; border: 2px dashed var(--leaf); border-bottom: 0; }
+.bar__up { width: 16px; height: 16px; margin-top: 5px; color: var(--on-sun); stroke-width: 3; transform: rotate(-90deg); }
+.bars__names span { min-width: 0; }
+.bars__hint { position: absolute; left: 0; right: 0; top: 34%; padding: 0 var(--s5); text-align: center; text-wrap: balance; font-size: var(--fs-sm); font-weight: 700; line-height: 1.45; color: var(--ink-2); }
+.legend__part i { background: none; border: 1.5px dashed var(--leaf); }
+.legend__line i { width: 20px; height: 0; border-radius: 0; border-top: 2px dashed var(--ink-3); background: none; }
+.legend__weight i { width: 6px; height: 6px; margin: 0 3px; background: var(--ink-2); }
+
+/* --- chuỗi ngày + lịch tháng --------------------------------------------- */
+.streak__row svg { max-width: 28px; }
+.streak__row { justify-content: space-between; }
+.cal__month { align-items: center; gap: var(--s2); }
+.cal__label { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 var(--s2); min-width: 0; }
+.cal__nav { flex: none; display: flex; gap: 6px; }
+.cal__nav .icon-btn { width: var(--tap); height: var(--tap); }
+.cal__d.is-future > span { opacity: .9; }
+/* ngày từ lúc bắt đầu tới hôm nay là nút: chạm để mở nhật ký ngày đó ở màn Hôm nay.
+   Khoảng hở giữa các hàng nhập vào chiều cao ô (38 + 5 = 43px) để vùng chạm liền nhau, không có khe chết. */
+.cal { row-gap: 0; }
+.cal__d { min-height: 43px; }
+button.cal__d { -webkit-tap-highlight-color: transparent; }
+button.cal__d:active > span { transform: scale(.92); }
+button.cal__d:focus-visible { outline: none; }
+button.cal__d:focus-visible > span { outline: 2.5px solid var(--leaf); outline-offset: 2px; }
+button.cal__d.is-now:focus-visible > span { outline-color: var(--ink); outline-offset: 5px; }
+/* không chỉ dựa vào màu: đạt = đĩa đặc · vượt = vòng + mũi tên nhỏ · ghi chưa đủ = vòng nét đứt · có cân = chấm dưới số */
+.cal__d.is-over > span::before {
+  content: ""; position: absolute; top: 3px; left: 50%; margin-left: -4px;
+  border: 4px solid transparent; border-top: 0; border-bottom: 4.5px solid currentColor;
+}
+.cal__d.is-part > span { border: 2px dashed var(--leaf); color: var(--leaf-ink); }
+.cal__d.has-weight > span::after { content: ""; position: absolute; bottom: 3px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: currentColor; }
+/* hôm nay + vượt mức: vòng xanh bên ngoài bằng box-shadow (outline bo tròn chỉ có từ Safari 16.4) */
+.cal__d.is-now > span { box-shadow: inset 0 0 0 2px var(--over), 0 0 0 1.5px var(--surface), 0 0 0 4px var(--leaf); }
+.legend__over-ring i { position: relative; }
+.legend__over-ring i::before { content: ""; position: absolute; top: 3px; left: 50%; margin-left: -2.5px; border: 2.5px solid transparent; border-top: 0; border-bottom: 3.5px solid var(--over-ink); }
+
+/* --- chum thâm hụt --------------------------------------------------------- */
+.bank__text { min-width: 0; }
+.bank__num--empty { font: 700 var(--fs-md)/1.3 var(--font-display); }
+.bank.is-empty .bank__eq { font-size: var(--fs-sm); line-height: 1.45; }
+.bank__next { line-height: 1.4; }
+.bank__why { font-weight: 600; }
+
+/* --- huy hiệu ---------------------------------------------------------------- */
+.badge { min-width: 0; }
+.badge__name { overflow-wrap: anywhere; }
+
+/* --- điện thoại hẹp (360px) --------------------------------------------------- */
+@media (max-width: 374px) {
+  .screen[data-tab="journey"] .section-title { font-size: 18px; }
+  .weight__pt--now b { font-size: 40px; }
+  .weight__top .btn { padding: 0 14px; }
+  .gift__art { width: 56px; height: 56px; }
+  .gift__art svg { width: 48px; height: 48px; }
+  .badge svg { width: 76px; height: 76px; }
+  .bars { --bar-w: 24px; }
+}

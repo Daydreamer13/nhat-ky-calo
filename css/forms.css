@@ -1,0 +1,56 @@
+/* forms.css — bổ sung cho màn làm quen và màn Cài đặt (nạp sau parts.css).
+   Các thành phần dùng chung (nút, ô nhập, tấm trượt…) nằm ở parts.css; file này chỉ chứa phần riêng của hai màn đó. */
+
+/* ---------- ô nhập ---------- */
+/* nhắc nhẹ (không phải lỗi): ví dụ chuỗi trong ô khoá không giống khoá Claude */
+.field-warn { font-size: var(--fs-sm); font-weight: 700; color: var(--over-ink); line-height: 1.4; }
+/* nút đang bận nhưng vẫn giữ tiêu điểm (khác với disabled, vốn làm rơi tiêu điểm của bàn phím và trình đọc màn hình) */
+.btn[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+/* dòng chú thích nhỏ trong nút chọn tốc độ: bỏ độ mờ để chữ trắng trên nền xanh đủ tương phản */
+.seg-btn small { opacity: 1; }
+/* công tắc cao 32 px: nới vùng chạm lên 44 px mà không đổi hình */
+.switch::before { content: ""; position: absolute; top: -6px; right: 0; bottom: -6px; left: 0; }
+
+/* ---------- làm quen lần đầu ---------- */
+/* Hàng nút dính đáy: có nền mờ dần nên chữ cuộn bên dưới chìm đi thay vì đè lên nút; tự lo phần lề an toàn ở đáy,
+   nên .ob không cần chừa lề đáy nữa. */
+.ob { padding-bottom: 0; }
+.ob-actions {
+  bottom: 0; margin: auto -20px 0;
+  padding: 18px 20px calc(env(safe-area-inset-bottom, 0px) + 10px);
+  background: linear-gradient(to top, var(--bg) 78%, transparent);
+}
+/* Bàn phím Android thu ngắn màn hình (interactive-widget=resizes-content): hàng nút dính đáy sẽ nhảy lên nằm ngay trên bàn phím
+   và che đúng ô đang gõ (năm sinh, chiều cao). Màn hình thấp như vậy thì thôi dính: hàng nút nằm cuối trang như bình thường.
+   Trên iPhone khung trang không co lại khi bàn phím mở nên luật này không chạy.
+   Màn chào (bước 0) không có ô nhập nên không bao giờ có bàn phím: ở đó hàng nút vẫn dính đáy, để máy thấp hay máy xoay ngang
+   vẫn thấy ngay nút "Bắt đầu". */
+@media (max-height: 540px) {
+  .ob:not([data-step="0"]) .ob-actions { position: static; }
+}
+/* Hình cây ở màn chào co theo chiều cao màn hình (216 px trên máy cao, nhỏ dần tới 120 px), để trên máy thấp (360×740)
+   ba dòng giới thiệu vẫn nằm trọn phía trên hàng nút, không bị cắt ngang. 574 px là phần còn lại của màn chào. */
+.ob-hero { --ob-hero: clamp(120px, calc(100vh - 574px), 216px); width: var(--ob-hero); height: var(--ob-hero); }
+@supports (height: 100dvh) {
+  .ob-hero { --ob-hero: clamp(120px, calc(100dvh - 574px), 216px); }
+}
+.ob-hero .plant { width: 77.8%; height: auto; }
+/* Hiệu ứng trượt lên chỉ đặt vào phần nội dung, và chỉ khi vừa sang bước mới: hàng nút đứng yên (không sinh thêm
+   10 px cuộn thừa), và chọn một lựa chọn trong bước không làm cả màn hình nháy lại. */
+.ob-body { animation: none; }
+.ob.is-enter .ob-body > :not(.ob-actions) { animation: rise-in .32s ease both; }
+/* tiêu đề nhận tiêu điểm khi sang bước mới (cho trình đọc màn hình), không cần viền */
+.ob-title:focus { outline: none; }
+/* chữ chỉ dành cho trình đọc màn hình ("Bước 2 trên 4") */
+.ob-vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+/* lời nhắc cho iPhone ở màn chào */
+.ob-ios { gap: 8px; background: var(--sun-soft); }
+.ob-ios .fold { background: transparent; }
+.ob-ios .fold > summary { min-height: var(--tap); padding: 8px 0; color: var(--sun-ink); }
+.ob-ios .fold > .steps { padding: 4px 0 6px; }
+.ob-ios .steps li::before { background: var(--surface); color: var(--sun-ink); }
+
+/* ---------- cài đặt ---------- */
+/* nút và lời dặn nằm trong một bước hướng dẫn (cài lên Màn hình chính trên iPhone) */
+.steps li > .btn { margin-top: 8px; }
+.steps li > .field-err { display: block; margin-top: 6px; }

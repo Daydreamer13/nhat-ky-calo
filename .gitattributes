@@ -1,0 +1,2 @@
+# Giữ kết thúc dòng kiểu LF trên mọi máy (Windows không tự đổi sang CRLF).
+* text=auto eol=lf

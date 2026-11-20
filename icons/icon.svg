@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Nhật Ký Calo</title>
+  <!-- Biểu tượng chính: nền tràn viền, bông hoa của ứng dụng mọc lên từ bát cơm. -->
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2F8E57"/><stop offset="1" stop-color="#1E7245"/></linearGradient></defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <g transform="translate(256 250) scale(1.08) translate(-256 -256)">
+    <!-- nắng sau lưng cây -->
+    <circle cx="256" cy="170" r="130" fill="#3A9B5F" opacity=".6"/>
+    <!-- lá và cuống -->
+    <path fill="#7CC68A" d="M252 312C186 312 132 286 108 232c62-22 126 8 144 80z"/>
+    <path fill="#CDE8C8" d="M260 312c66 0 120-26 144-80-62-22-126 8-144 80z"/>
+    <path fill="none" stroke="#CDE8C8" stroke-width="16" stroke-linecap="round" d="M256 300V236"/>
+    <!-- bông hoa của ứng dụng -->
+    <g fill="#EE8A7A"><circle cx="256" cy="109" r="48"/><circle cx="310.21" cy="148.39" r="48"/><circle cx="289.5" cy="212.11" r="48"/><circle cx="222.5" cy="212.11" r="48"/><circle cx="201.79" cy="148.39" r="48"/></g>
+    <circle cx="256" cy="166" r="36" fill="#F6C343"/>
+    <!-- cái bát -->
+    <path fill="#FFFFFF" d="M118 300h276c0 76-58 126-138 126s-138-50-138-126z"/>
+    <path fill="#DDEFD6" d="M394 300c0 76-58 126-138 126-16 0-31-2-45-6 70-4 126-48 139-120z"/>
+    <rect fill="#FFFFFF" x="100" y="276" width="312" height="34" rx="17"/>
+    <rect fill="#DDEFD6" x="204" y="420" width="104" height="26" rx="13"/>
+  </g>
+</svg>

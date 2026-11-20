@@ -1,0 +1,209 @@
+/* ==========================================================================
+   Nhật Ký Calo — màn "Hôm nay"
+   Bổ sung cho app.css (bản thiết kế "Vườn nhỏ"): những trạng thái bản mẫu chưa vẽ
+   (ngày đã qua, tuần trước, đang nhận diện, chưa tính được, gợi ý, tài khoản mới…)
+   và các quyết định sau buổi duyệt thiết kế. Mọi màu lấy từ token nên tự đổi sáng/tối.
+   ========================================================================== */
+
+:root {
+  /* đạm · bột · béo: lá, nắng, hoa — ba sắc khác hẳn nhau, không sắc nào giống màu cảnh báo */
+  --macro-p: var(--leaf);
+  --macro-c: var(--sun);
+  --macro-f: var(--bloom);
+}
+
+/* --- đầu trang ---------------------------------------------------------- */
+.greeting { min-width: 0; }
+.greeting__text { min-width: 0; overflow-wrap: anywhere; }
+/* mặt trời / trăng nằm ngay sau chữ cuối, kể cả khi lời chào xuống dòng */
+.greeting__text .greeting__sun { display: inline-block; vertical-align: -4px; margin-left: 2px; }
+.greeting__moon { fill: var(--sun); stroke: none; }
+.topbar__meta { flex-wrap: wrap; row-gap: var(--s1); }
+
+/* đang xem lại một ngày đã qua */
+.dayback {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s3);
+  margin-top: calc(-1 * var(--s2)); padding: 8px 8px 8px 16px;
+  border-radius: var(--r-lg); background: var(--sun-soft); color: var(--sun-ink);
+}
+.dayback__text { min-width: 0; display: flex; flex-direction: column; font-size: var(--fs-sm); font-weight: 700; line-height: 1.3; }
+.dayback__text b { font: 700 var(--fs-md)/1.3 var(--font-display); color: var(--ink); }
+.dayback__btn {
+  flex: none; display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 16px;
+  border-radius: var(--r-pill); background: var(--leaf-strong); color: var(--on-leaf);
+  font-size: var(--fs-base); font-weight: 800; white-space: nowrap;
+}
+
+/* --- dải tuần ------------------------------------------------------------ */
+.weekbar { display: flex; flex-wrap: wrap; align-items: stretch; }
+.weekbar .week { flex: 1; min-width: 0; }
+.weekbar.has-nav { margin: 0 -13px; }
+.week-nav {
+  position: relative; z-index: 1;      /* nằm trên ô ngày (ô ngày cũng position: relative) */
+  flex: none; display: grid; place-items: center; width: 31px; padding-bottom: 12px;
+  color: var(--ink-2); border-radius: var(--r-sm);
+}
+/* hình mũi tên vẫn mảnh như cũ; vùng chạm quanh mũi tên rộng đủ 44px:
+   ra tới mép màn hình và lấn 10px vào mép ô ngày ngoài cùng, chỉ ở đoạn giữa (hàng mầm cây vẫn nguyên) */
+.week-nav::before { content: ""; position: absolute; top: calc(50% - 30px); height: 48px; }
+.week-nav--prev::before { left: -3px; right: -10px; }
+.week-nav--next::before { left: -10px; right: -3px; }
+.week-nav--prev .icon { transform: rotate(180deg); }
+.week-nav:disabled { opacity: .28; cursor: default; }
+.week-nav:disabled::before { display: none; }      /* nút tắt không được nuốt cú chạm vào ô T2 / CN */
+.week__label {
+  flex: 0 0 100%; display: flex; align-items: center; justify-content: center; gap: var(--s2);
+  padding-top: var(--s1); font-size: var(--fs-sm); font-weight: 700; color: var(--ink-2);
+}
+.week__back { position: relative; min-height: 36px; padding: 0 12px; border-radius: var(--r-pill); background: var(--leaf-tint); color: var(--leaf-ink); font-weight: 800; }
+.week__back::before { content: ""; position: absolute; top: -4px; right: 0; bottom: -4px; left: 0; }      /* hình 36px, vùng chạm 44px */
+
+.day { position: relative; padding-bottom: 0; -webkit-tap-highlight-color: transparent; }
+.day:disabled { cursor: default; }
+.day__sprout { position: relative; display: block; width: 32px; height: 30px; margin-top: auto; padding: 0; }
+.day__sprout .day__plant { margin-top: 0; }
+.day.is-none .day__num { color: var(--ink-2); }
+/* ghi chưa đủ bữa: một mầm nhỏ, nhạt */
+.day.is-partial .day__plant { opacity: .5; transform: scale(.72); transform-origin: 50% 100%; }
+/* ô có nền trắng là ngày đang xem; hôm nay (khi đang xem ngày khác) chỉ còn một viền mảnh */
+.day.is-today { background: none; box-shadow: inset 0 0 0 1.5px var(--leaf-soft); }
+.day.is-selected, .day.is-today.is-selected { background: var(--surface); box-shadow: var(--shadow-soft); }
+.day.is-selected .day__name { color: var(--leaf-ink); }
+/* trạng thái không chỉ dựa vào màu lá: dấu tích = đạt, mũi tên lên = vượt */
+.day__badge {
+  position: absolute; left: 19px; top: 15px; display: grid; place-items: center; width: 13px; height: 13px;
+  border-radius: 50%; box-shadow: 0 0 0 1.5px var(--bg);
+}
+.day.is-selected .day__badge { box-shadow: 0 0 0 1.5px var(--surface); }
+.day__badge .icon { width: 9px; height: 9px; stroke-width: 3.6; }
+.day__badge--ok { background: var(--leaf-strong); color: var(--on-leaf); }
+.day__badge--over { background: var(--over); color: var(--on-sun); }
+.day__badge--over .icon { transform: rotate(-90deg); }
+/* hôm nay: thanh nhỏ cho biết đã ăn tới đâu so với mục tiêu */
+.day__bar { display: block; width: 24px; height: 4px; margin-top: 2px; border-radius: var(--r-pill); background: var(--leaf-soft); overflow: hidden; }
+.day__bar i { display: block; height: 100%; max-width: 100%; border-radius: inherit; background: var(--leaf); }
+.day.is-over .day__bar i { background: var(--over); }
+
+/* --- vòng calo ----------------------------------------------------------- */
+.wreath__svg use { pointer-events: none; }
+.macro--protein { --macro: var(--macro-p); }
+.macro--carb { --macro: var(--macro-c); }
+.macro--fat { --macro: var(--macro-f); }
+.hero__tip p { text-wrap: balance; overflow-wrap: anywhere; }
+.hero__pending { display: flex; align-items: center; gap: 7px; margin-top: 6px; padding-top: 6px; border-top: 2px dotted var(--leaf-soft); font-size: var(--fs-sm); font-weight: 700; color: var(--ink-2); }
+.hero__pending i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--sun); animation: nkc-pulse 1.2s ease-in-out infinite; }
+@keyframes nkc-pulse { 50% { opacity: .35; transform: scale(.7); } }
+@keyframes nkc-shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+
+/* --- lời nhắc về hôm qua -------------------------------------------------- */
+.recap { display: flex; align-items: center; gap: var(--s3); padding: 8px 6px 8px 12px; border-radius: var(--r-lg); background: var(--leaf-tint); }
+.recap--calm { background: var(--sun-soft); }
+.recap__ico { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--surface); color: var(--sun-ink); }
+.recap__ico svg { width: 24px; height: 22px; }
+.recap__ico .icon { width: 22px; height: 22px; }
+.recap__text { flex: 1; min-width: 0; font-size: var(--fs-base); font-weight: 700; line-height: 1.4; color: var(--ink); overflow-wrap: anywhere; }
+.recap--calm .recap__text { color: var(--sun-ink); }
+
+/* nút đóng nhỏ: hình 36px, vùng chạm 44px */
+.x-btn { position: relative; flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; color: var(--ink-2); }
+.x-btn::before { content: ""; position: absolute; inset: -4px; }
+.recap--calm .x-btn { color: var(--sun-ink); }
+
+/* --- lời nhắn: lời dài tự thu chữ, không bao giờ tràn thẻ ------------------- */
+.note { grid-template-columns: minmax(0, 1fr) auto; }
+.note__label { min-width: 0; align-self: start; }
+.note__label span { min-width: 0; overflow-wrap: anywhere; }
+.note__label svg { flex: none; }
+.note__stamp { align-self: start; }
+.note__text { min-width: 0; overflow-wrap: anywhere; }
+.note__text.is-long { font-size: var(--fs-lg); line-height: 1.3; text-wrap: pretty; }
+.note__text.is-xlong { font-size: 18px; line-height: 1.3; text-wrap: pretty; }
+.note__sign { min-width: 0; }
+.note__sign span { min-width: 0; overflow-wrap: anywhere; text-align: right; }
+.note__sign svg { flex: none; }
+.note__sprig { align-self: end; }
+.note--unsigned .note__sprig { grid-row: auto; }
+.note--unsigned { padding-bottom: 14px; }
+
+/* --- gợi ý một lần --------------------------------------------------------- */
+.hints { display: flex; flex-direction: column; gap: var(--s2); }
+.hint { display: flex; align-items: center; gap: var(--s2); padding: 6px 4px 6px 14px; border-radius: var(--r-lg); box-shadow: inset 0 0 0 1.5px var(--leaf-soft); }
+.hint__text { flex: 1; min-width: 0; padding: 4px 0; font-size: var(--fs-sm); font-weight: 700; line-height: 1.4; color: var(--ink-2); }
+.hint__go { flex: none; display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--r-pill); background: var(--leaf-tint); color: var(--leaf-ink); font-size: var(--fs-sm); font-weight: 800; white-space: nowrap; position: relative; }
+.hint__go::before { content: ""; position: absolute; inset: -2px 0; }
+.hint--warn { padding: 10px 14px; background: var(--over-soft); box-shadow: none; }
+.hint--warn .hint__text { color: var(--over-ink); }
+
+/* --- bữa ăn ---------------------------------------------------------------- */
+.meal { transition: transform .12s ease; }
+.meal:active { transform: scale(.985); }
+/* ảnh bữa ăn là thứ trang trí màn này: to hơn bản mẫu một chút, vẫn khung trắng và hơi nghiêng */
+.meal__photo, .meal__slot { width: 84px; height: 84px; }
+.meal--quiet .meal__mark { width: 84px; }
+.meal__photo { position: relative; display: block; }
+.meal__photo > svg { display: block; }
+.meal__photo img { position: absolute; inset: 0; max-width: none; }
+.meal__photo img:not([src]), .meal__photo.no-photo img { display: none; }
+.meal__name { display: block; }
+.meal--logged .meal__kcal { min-width: 44px; }
+.meal--empty { text-align: left; }
+.meal--quiet .meal__name, .meal--quiet .meal__none { white-space: nowrap; }
+.meal--quiet .meal__body { flex-wrap: wrap; row-gap: 0; }
+.meal--quiet .meal__add { flex: none; }
+
+/* đang nhận diện */
+.meal__scan { position: absolute; inset: 0; opacity: .55; background: linear-gradient(100deg, transparent 30%, var(--ill-light) 50%, transparent 70%); background-size: 220% 100%; animation: nkc-shimmer 1.6s ease-in-out infinite; }
+.meal__state { font-size: var(--fs-sm); font-weight: 700; color: var(--ink-2); }
+.meal__wait { flex: none; width: 46px; height: 24px; border-radius: var(--r-sm); background: linear-gradient(100deg, var(--surface-2) 30%, var(--leaf-soft) 50%, var(--surface-2) 70%); background-size: 220% 100%; animation: nkc-shimmer 1.6s ease-in-out infinite; }
+/* chưa tính được: màu ấm, không báo động */
+.meal.is-failed { box-shadow: inset 0 0 0 1.5px var(--over), var(--shadow-soft); }
+.meal__state--failed { color: var(--over-ink); }
+.meal__alert { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--over-soft); color: var(--over-ink); font: 700 var(--fs-md)/1 var(--font-display); }
+
+/* --- món hay ăn: lưới hai cột, tên dài tự xuống dòng ------------------------- */
+.favs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2); }
+.fav {
+  position: relative; display: flex; align-items: center; gap: var(--s2); min-width: 0; min-height: 52px; padding: 6px 12px 6px 6px;
+  border-radius: 26px; background: var(--surface); box-shadow: var(--shadow-soft); text-align: left;
+  transition: transform .12s ease;
+}
+.fav:active { transform: scale(.975); }
+.fav__body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+/* tên rất dài: tối đa ba dòng (tên đầy đủ vẫn có trong aria-label của nút) */
+.fav__name {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden;
+  font-size: var(--fs-base); font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; text-wrap: balance;
+}
+.fav__kcal { font: 700 var(--fs-sm)/1.35 var(--font-display); color: var(--ink-2); }
+.fav__pin { flex: none; align-self: flex-start; width: 12px; height: 12px; margin: 4px -2px 0 0; fill: var(--bloom); }
+
+/* --- nước: dải cuối màn ------------------------------------------------------ */
+.water { margin-bottom: 0; }
+.water__title { min-width: 0; }
+.water__count { flex: none; }
+.water.is-done .water__count { color: var(--leaf-ink); }
+
+/* --- máy hẹp (360px) --------------------------------------------------------- */
+@media (max-width: 374px) {
+  .meal__photo, .meal__slot { width: 76px; height: 76px; }
+  .meal--quiet .meal__mark { width: 76px; }
+  .weekbar.has-nav { margin: 0 -14px; }
+  .week-nav { width: 28px; }
+  .week-nav--prev::before { left: -2px; right: -14px; }
+  .week-nav--next::before { left: -14px; right: -2px; }
+  .hero__main { gap: var(--s3); }
+  .dayback__text b { font-size: var(--fs-base); }
+  .meal-actions { gap: var(--s2); }
+  .meal-actions .btn { gap: 6px; padding: 0 6px; font-size: 14px; white-space: nowrap; }
+  .meal-actions .btn .icon { width: 18px; height: 18px; }
+}
+
+/* máy rất hẹp (320px): vòng calo nhỏ lại để cột số liệu còn chỗ */
+@media (max-width: 339px) {
+  .wreath { width: 132px; }
+  .wreath__num { font-size: 44px; }
+  .wreath__num.is-long { font-size: 34px; }
+  .wreath__label, .wreath__unit { font-size: var(--fs-sm); }
+  .tally dd { font-size: var(--fs-md); }
+  .meal-actions .btn { font-size: var(--fs-sm); }
+}

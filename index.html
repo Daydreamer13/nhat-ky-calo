@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<!-- Hàng rào thứ hai cho khoá Claude và nhật ký: trang chỉ được chạy mã của chính app và chỉ được gọi tới Claude (phông chữ nằm sẵn trong app). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://api.anthropic.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Nhật Ký Calo</title>
+<meta name="description" content="Chụp bữa ăn là biết ngay bao nhiêu calo. Nhật ký ăn uống nhẹ nhàng để giảm cân mỗi ngày.">
+<meta name="theme-color" content="#DCEEF3">
+<meta name="color-scheme" content="light dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Nhật Ký Calo">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<!-- Đặt sáng/tối và màu hoa trước khi vẽ (file riêng, không viết thẳng trong trang, để hàng rào CSP ở trên không phải nới). -->
+<script src="js/early.js"></script>
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/parts.css">
+<link rel="stylesheet" href="css/forms.css">
+<link rel="stylesheet" href="css/today.css">
+<link rel="stylesheet" href="css/journey.css">
+<link rel="stylesheet" href="css/accents.css">
+</head>
+<body>
+<!-- SPRITE:START — biểu tượng và các mảnh minh hoạ dùng chung (tham chiếu bằng <use href="#id">) -->
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <defs>
+    <radialGradient id="ph-light" cx=".28" cy=".18" r="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".30"/>
+      <stop offset=".55" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".26"/>
+    </radialGradient>
+    <filter id="paper-grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="matrix" values="0 0 0 0 .2  0 0 0 0 .12  0 0 0 0 .05  0 0 0 1.6 -.35"/></filter>
+    <path id="leaf-shape" d="M0 0C6-11 24-13 36 0 24 13 6 11 0 0z"/>
+    <g id="leaf-full"><use href="#leaf-shape"/><path class="ill-vein" d="M5 0H28"/></g>
+    <g id="bud">
+      <path class="f-bloom" d="M0 0C-9-5-9.5-18 0-28 9.5-18 9-5 0 0z"/>
+      <path class="f-bloom-light" d="M0-3C-3.2-9-3.2-17 0-25 3.2-17 3.2-9 0-3z"/>
+      <path class="f-leaf-deep" d="M0 2C-8 1-11-6-9-13-4-9-1-5 0 2z"/>
+      <path class="f-leaf" d="M0 2C8 1 11-6 9-13 4-9 1-5 0 2z"/>
+    </g>
+    <!-- five-petal flower, centred on 0,0, r≈10 -->
+    <g id="flower">
+      <g class="f-bloom"><circle cy="-6" r="4.6"/><circle cy="-6" r="4.6" transform="rotate(72)"/><circle cy="-6" r="4.6" transform="rotate(144)"/><circle cy="-6" r="4.6" transform="rotate(216)"/><circle cy="-6" r="4.6" transform="rotate(288)"/></g>
+      <circle class="f-sun" r="3.6"/>
+    </g>
+
+    <!-- wreath: leaves drawn at 12 o'clock of the r=80 ring centred on 100,100.
+         One outer leaf every 36°; each opens when the arc (--pct) has passed its angle (--a). -->
+    <path id="wreath-out" d="M100 20C103 9 110 3 121.5 2 118.5 13 111.4 19 100 20z"/>
+    <path id="wreath-in" d="M100 20C102 27.7 107 32 115 32.6 113 25 108 20.7 100 20z"/>
+    <g id="wreath-vine">
+      <g class="f-leaf-deep">
+        <use href="#wreath-out" class="wreath__leaf" style="--a:10" transform="rotate(10 100 100)"/>
+        <use href="#wreath-out" class="wreath__leaf" style="--a:46" transform="rotate(46 100 100)"/>
+        <use href="#wreath-out" class="wreath__leaf" style="--a:82" transform="rotate(82 100 100)"/>
+        <use href="#wreath-out" class="wreath__leaf" style="--a:118" transform="rotate(118 100 100)"/>
+        <use href="#wreath-out" class="wreath__leaf" style="--a:154" transform="rotate(154 100 100)"/>
+        <use href="#wreath-out" class="wreath__leaf" style="--a:190" transform="rotate(190 100 100)"/>
+        <use href="#wreath-out" class="wreath__leaf" style="--a:226" transform="rotate(226 100 100)"/>
+        <use href="#wreath-out" class="wreath__leaf" style="--a:262" transform="rotate(262 100 100)"/>
+        <use href="#wreath-out" class="wreath__leaf" style="--a:298" transform="rotate(298 100 100)"/>
+        <use href="#wreath-out" class="wreath__leaf" style="--a:334" transform="rotate(334 100 100)"/>
+      </g>
+      <g class="f-leaf-light">
+        <use href="#wreath-in" class="wreath__leaf" style="--a:28" transform="rotate(28 100 100)"/>
+        <use href="#wreath-in" class="wreath__leaf" style="--a:136" transform="rotate(136 100 100)"/>
+        <use href="#wreath-in" class="wreath__leaf" style="--a:208" transform="rotate(208 100 100)"/>
+        <use href="#wreath-in" class="wreath__leaf" style="--a:316" transform="rotate(316 100 100)"/>
+      </g>
+    </g>
+
+    <!-- garden halo: one day-leaf at 12 o'clock of the r=108 ring centred on 238,180 -->
+    <path id="halo-mark" d="M-6.5 0C-4.3-4 2.2-4.7 6.5 0 2.2 4.7-4.3 4-6.5 0z" transform="translate(238 72)"/>
+
+    <!-- camera flower petals + badge petals (three families) -->
+    <g id="cam-petals"><circle cx="50" cy="14" r="11"/><circle cx="50" cy="14" r="11" transform="rotate(30 50 50)"/><circle cx="50" cy="14" r="11" transform="rotate(60 50 50)"/><circle cx="50" cy="14" r="11" transform="rotate(90 50 50)"/><circle cx="50" cy="14" r="11" transform="rotate(120 50 50)"/><circle cx="50" cy="14" r="11" transform="rotate(150 50 50)"/><circle cx="50" cy="14" r="11" transform="rotate(180 50 50)"/><circle cx="50" cy="14" r="11" transform="rotate(210 50 50)"/><circle cx="50" cy="14" r="11" transform="rotate(240 50 50)"/><circle cx="50" cy="14" r="11" transform="rotate(270 50 50)"/><circle cx="50" cy="14" r="11" transform="rotate(300 50 50)"/><circle cx="50" cy="14" r="11" transform="rotate(330 50 50)"/></g>
+    <g id="rosette-out"><circle cx="42" cy="16" r="12"/><circle cx="42" cy="16" r="12" transform="rotate(45 42 42)"/><circle cx="42" cy="16" r="12" transform="rotate(90 42 42)"/><circle cx="42" cy="16" r="12" transform="rotate(135 42 42)"/><circle cx="42" cy="16" r="12" transform="rotate(180 42 42)"/><circle cx="42" cy="16" r="12" transform="rotate(225 42 42)"/><circle cx="42" cy="16" r="12" transform="rotate(270 42 42)"/><circle cx="42" cy="16" r="12" transform="rotate(315 42 42)"/></g>
+    <g id="rosette-in"><circle cx="42" cy="22" r="9.5"/><circle cx="42" cy="22" r="9.5" transform="rotate(45 42 42)"/><circle cx="42" cy="22" r="9.5" transform="rotate(90 42 42)"/><circle cx="42" cy="22" r="9.5" transform="rotate(135 42 42)"/><circle cx="42" cy="22" r="9.5" transform="rotate(180 42 42)"/><circle cx="42" cy="22" r="9.5" transform="rotate(225 42 42)"/><circle cx="42" cy="22" r="9.5" transform="rotate(270 42 42)"/><circle cx="42" cy="22" r="9.5" transform="rotate(315 42 42)"/></g>
+    <g id="petals-5"><circle cx="42" cy="20" r="14.5"/><circle cx="42" cy="20" r="14.5" transform="rotate(72 42 42)"/><circle cx="42" cy="20" r="14.5" transform="rotate(144 42 42)"/><circle cx="42" cy="20" r="14.5" transform="rotate(216 42 42)"/><circle cx="42" cy="20" r="14.5" transform="rotate(288 42 42)"/></g>
+    <g id="petals-5-in"><circle cx="42" cy="25" r="10"/><circle cx="42" cy="25" r="10" transform="rotate(72 42 42)"/><circle cx="42" cy="25" r="10" transform="rotate(144 42 42)"/><circle cx="42" cy="25" r="10" transform="rotate(216 42 42)"/><circle cx="42" cy="25" r="10" transform="rotate(288 42 42)"/></g>
+    <path id="petal-6" d="M42 42C29 31 33 13 42 4c9 9 13 27 0 38z"/>
+    <g id="petals-6"><use href="#petal-6"/><use href="#petal-6" transform="rotate(60 42 42)"/><use href="#petal-6" transform="rotate(120 42 42)"/><use href="#petal-6" transform="rotate(180 42 42)"/><use href="#petal-6" transform="rotate(240 42 42)"/><use href="#petal-6" transform="rotate(300 42 42)"/></g>
+    <path id="petal-6-in" d="M42 42C33.5 34 35.5 21 42 14c6.5 7 8.5 20 0 28z"/>
+    <g id="petals-6-in"><use href="#petal-6-in"/><use href="#petal-6-in" transform="rotate(60 42 42)"/><use href="#petal-6-in" transform="rotate(120 42 42)"/><use href="#petal-6-in" transform="rotate(180 42 42)"/><use href="#petal-6-in" transform="rotate(240 42 42)"/><use href="#petal-6-in" transform="rotate(300 42 42)"/></g>
+    <g id="badge-lock"><circle class="badge__chip" cx="66" cy="66" r="11.5"/><g class="badge__lock" transform="translate(58.2 57.6) scale(.65)"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2.6"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></g></g>
+  </defs>
+
+  <!-- icons -->
+  <symbol id="i-gear" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M3.5 9A2.5 2.5 0 0 1 6 6.5h1.3l1.3-2a1.6 1.6 0 0 1 1.3-.7h4.2a1.6 1.6 0 0 1 1.3.7l1.3 2H18A2.5 2.5 0 0 1 20.5 9v8A2.5 2.5 0 0 1 18 19.5H6A2.5 2.5 0 0 1 3.5 17z"/><circle cx="12" cy="12.8" r="3.5"/></symbol>
+  <symbol id="i-sprout" viewBox="0 0 24 24"><path d="M12 21v-9"/><path d="M12 15c-4.2 0-6.8-2.3-6.8-6.2 4.2 0 6.8 2.3 6.8 6.2z"/><path d="M12 12c0-3.8 2.5-6.4 6.8-6.4 0 4-2.6 6.4-6.8 6.4z"/></symbol>
+  <symbol id="i-pot" viewBox="0 0 24 24"><path d="M7.4 15h9.2l-1.1 5.5h-7z"/><path d="M12 15V9.4"/><path d="M12 9.4c-1.8 0-3-1.6-3-4.6l1.6 1.3L12 3.6l1.4 2.5L15 4.8c0 3-1.2 4.6-3 4.6z"/><path d="M12 13.2c-2 0-3.3-.9-3.6-2.6M12 12c1.9 0 3.2-.8 3.6-2.2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="3.2"/><circle cx="9" cy="10" r="1.6"/><path d="M4.5 17l4.8-4.3 3.3 2.9 2.9-2.4 4 3.6"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4.5 19.5l1-4.2L16.3 4.5a2.1 2.1 0 0 1 3 3L8.5 18.3z"/><path d="M14.3 6.5l3 3"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2.6"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></symbol>
+  <symbol id="i-sunrise" viewBox="0 0 24 24"><path d="M3.5 18.5h17"/><path d="M7 18.5a5 5 0 0 1 10 0"/><path d="M12 6.5v3M5.3 10.3l2 2M18.7 10.3l-2 2"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2M6 6l1.4 1.4M16.6 16.6L18 18M6 18l1.4-1.4M16.6 7.4L18 6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.5 14.2A7.8 7.8 0 1 1 9.8 4.5a6.2 6.2 0 0 0 9.7 9.7z"/></symbol>
+  <symbol id="i-apple" viewBox="0 0 24 24"><path d="M12 8.2c-1.6-1.7-5.8-1.5-5.8 3.2 0 3.8 2.4 7.6 4.2 7.6.7 0 1.1-.4 1.6-.4s.9.4 1.6.4c1.8 0 4.2-3.8 4.2-7.6 0-4.7-4.2-4.9-5.8-3.2z"/><path d="M12 8.2c0-2.2 1-3.7 2.6-4.2"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.8a4.2 4.2 0 0 1 7.5 2.5c0 5.6-7.5 10.2-7.5 10.2z"/></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4.5"/><path d="M8.3 9.8a5.2 5.2 0 0 1 7.4 0"/><path d="M12 9.8l1.2 2.6"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M5 6.8A2.8 2.8 0 0 1 7.8 4h8.4A2.8 2.8 0 0 1 19 6.8v6.4a2.8 2.8 0 0 1-2.8 2.8H11l-4 3.5V16A2.8 2.8 0 0 1 5 13.2z"/></symbol>
+
+  <!-- week-strip sprouts (stand on the soil line: base at y=30) -->
+  <symbol id="sprout-ok" viewBox="0 0 32 30"><path class="ill-stem ill-stem--thin" d="M16 30V13"/><path class="f-leaf" d="M16 20C9 20 4.5 16 4.5 9.5 11 9.5 16 13 16 20z"/><path class="f-leaf-light" d="M16 15.5C16 8.5 20 4 27.5 4c0 7-4 11.5-11.5 11.5z"/></symbol>
+  <symbol id="sprout-over" viewBox="0 0 32 30"><path class="ill-stem ill-stem--thin" d="M16 30V13"/><path class="f-over" d="M16 20C9 20 4.5 16 4.5 9.5 11 9.5 16 13 16 20z"/><path class="f-sun" d="M16 15.5C16 8.5 20 4 27.5 4c0 7-4 11.5-11.5 11.5z"/></symbol>
+  <symbol id="sprout-today" viewBox="0 0 32 30"><path class="ill-stem ill-stem--thin" d="M16 30V17"/><path class="f-leaf" d="M16 22c-5 0-8-2.8-8-7.5 4.8 0 8 2.8 8 7.5z"/><path class="f-leaf-light" d="M16 19c0-5 3-8 8-8 0 5-3 8-8 8z"/><circle class="f-sun" cx="25" cy="6" r="3"/></symbol>
+  <symbol id="sprout-seed" viewBox="0 0 32 30"><ellipse class="f-soil-soft" cx="16" cy="26.5" rx="5" ry="3.2"/></symbol>
+
+  <!-- the mascot: a budding flower in a clay pot (stage 4) -->
+  <symbol id="plant" viewBox="0 0 140 172">
+    <ellipse class="ill-shadow" cx="70" cy="167.5" rx="36" ry="4.5"/>
+    <path class="f-clay-deep" d="M43 130H97L91.5 161Q90.5 167 84.5 167H55.5Q49.5 167 48.5 161Z"/>
+    <path class="ill-gloss" d="M47 130h9l3 37h-3.5q-6 0-7-6z"/>
+    <rect class="f-clay" x="37" y="118" width="66" height="15" rx="7.5"/>
+    <rect class="ill-gloss" x="43" y="127" width="54" height="3" rx="1.5"/>
+    <ellipse class="f-soil" cx="70" cy="121.5" rx="27" ry="3.5"/>
+    <g class="plant__top">
+      <g class="ill-stem">
+        <path d="M70 121C70 100 64 84 68 62 70 52 70 44 69 34"/>
+        <path d="M67.5 88C58 82 50 73 46 58"/>
+        <path d="M68.6 71C78 67 88 59 92 46"/>
+      </g>
+      <use href="#leaf-full" class="f-leaf-deep" transform="translate(68 113) rotate(-160) scale(1.08)"/>
+      <use href="#leaf-full" class="f-leaf" transform="translate(71 107) rotate(-24) scale(1.18)"/>
+      <use href="#leaf-full" class="f-leaf" transform="translate(56 79) rotate(-176) scale(.62)"/>
+      <use href="#leaf-full" class="f-leaf-deep" transform="translate(81 65) rotate(-4) scale(.62)"/>
+      <use href="#leaf-full" class="f-leaf-light" transform="translate(69 52) rotate(-36) scale(.5)"/>
+      <use href="#leaf-full" class="f-leaf-light" transform="translate(68 61) rotate(-148) scale(.46)"/>
+      <use href="#bud" transform="translate(69 36)"/>
+      <use href="#bud" transform="translate(46 60) rotate(-20) scale(.8)"/>
+      <use href="#bud" transform="translate(92 48) rotate(22) scale(.8)"/>
+    </g>
+  </symbol>
+
+  <!-- growth stages 1–6 -->
+  <symbol id="stage-1" viewBox="0 0 30 30"><ellipse class="f-soil-soft" cx="15" cy="25" rx="11" ry="2.5"/><ellipse class="f-clay" cx="15" cy="22" rx="4" ry="2.8"/></symbol>
+  <symbol id="stage-2" viewBox="0 0 30 30"><ellipse class="f-soil-soft" cx="15" cy="25" rx="11" ry="2.5"/><path class="ill-stem ill-stem--thin" d="M15 25v-7"/><path class="f-leaf" d="M15 19c-4 0-6-2-6-5.5 3.8 0 6 2 6 5.5z"/><path class="f-leaf-light" d="M15 17c0-3.5 2-5.5 6-5.5 0 3.5-2.2 5.5-6 5.5z"/></symbol>
+  <symbol id="stage-3" viewBox="0 0 30 30"><ellipse class="f-soil-soft" cx="15" cy="25" rx="11" ry="2.5"/><path class="ill-stem ill-stem--thin" d="M15 25V9"/><path class="f-leaf" d="M15 21c-4.5 0-7-2.2-7-6 4.3 0 7 2.2 7 6z"/><path class="f-leaf-light" d="M15 18c0-3.8 2.5-6 7-6 0 3.8-2.7 6-7 6z"/><path class="f-leaf" d="M15 12c-3.2 0-5-1.6-5-4.4 3.2 0 5 1.6 5 4.4z"/><path class="f-leaf-light" d="M15 10c0-2.8 1.8-4.4 5-4.4 0 2.8-1.8 4.4-5 4.4z"/></symbol>
+  <symbol id="stage-4" viewBox="0 0 30 30"><ellipse class="f-soil-soft" cx="15" cy="25" rx="11" ry="2.5"/><path class="ill-stem ill-stem--thin" d="M15 25V10"/><path class="f-leaf" d="M15 21c-4.5 0-7-2.2-7-6 4.3 0 7 2.2 7 6z"/><path class="f-leaf-light" d="M15 18c0-3.8 2.5-6 7-6 0 3.8-2.7 6-7 6z"/><path class="f-bloom" d="M15 11c-3.4-1.8-3.6-6 0-9 3.6 3 3.4 7.2 0 9z"/></symbol>
+  <symbol id="stage-5" viewBox="0 0 30 30"><ellipse class="f-soil-soft" cx="15" cy="25" rx="11" ry="2.5"/><path class="ill-stem ill-stem--thin" d="M15 25V11"/><path class="f-leaf" d="M15 21c-4.5 0-7-2.2-7-6 4.3 0 7 2.2 7 6z"/><path class="f-leaf-light" d="M15 19c0-3.8 2.5-6 7-6 0 3.8-2.7 6-7 6z"/><use href="#flower" transform="translate(15 8.5) scale(.72)"/></symbol>
+  <symbol id="stage-6" viewBox="0 0 30 30"><ellipse class="f-soil-soft" cx="15" cy="25" rx="11" ry="2.5"/><path class="ill-stem ill-stem--thin" d="M15 25V11M15 20c-3-1-5.5-3.5-6.5-7M15 20c3-1 5.5-3.5 6.5-7"/><use href="#flower" transform="translate(15 7) scale(.64)"/><use href="#flower" transform="translate(7.5 12.5) scale(.52)"/><use href="#flower" transform="translate(22.5 12.5) scale(.52)"/></symbol>
+</svg>
+<!-- SPRITE:END -->
+<div id="app">
+  <div class="boot" aria-label="Đang mở Nhật Ký Calo"><div class="boot-mark"></div></div>
+</div>
+<div id="toasts" role="status" aria-live="polite"></div>
+<input type="file" id="camInput" accept="image/*" capture="environment" hidden>
+<input type="file" id="pickInput" accept="image/*" hidden>
+<input type="file" id="importInput" accept="application/json,.json" hidden>
+<noscript><p style="padding:24px;font:16px system-ui">Nhật Ký Calo cần JavaScript để chạy. Hãy bật JavaScript trong trình duyệt.</p></noscript>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
