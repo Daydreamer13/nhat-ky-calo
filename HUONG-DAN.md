@@ -12,6 +12,9 @@ Việc cần làm một lần: **(1)** đưa app lên mạng, **(2)** lấy kho�
 
 ## 1. Đưa app lên mạng
 
+**Bước này đã làm xong (21/11/2026).** App đang chạy ở **https://daydreamer13.github.io/nhat-ky-calo/**, mã nguồn
+nằm ở kho GitHub `Daydreamer13/nhat-ky-calo`. Phần dưới đây chỉ để tham khảo khi cần dựng lại ở nơi khác.
+
 App chỉ gồm các file tĩnh trong thư mục này. Điện thoại cần một địa chỉ **https** mới cài được.
 Cách đơn giản nhất là GitHub Pages:
 
@@ -157,8 +160,10 @@ Mất mạng lúc đang tính thì app tự thử lại; bữa ăn vẫn nằm t
 
 ## 8. Cập nhật app
 
-Sửa file xong, tăng số `VERSION` ở đầu `sw.js` (và `APP_VERSION` trong `js/views/settings.js`) rồi đẩy lên.
-Lần mở app kế tiếp, máy tự tải bản mới. Muốn lên bản mới của thư viện Claude thì xem `vendor/README.md`.
+Sửa file xong, tăng số `VERSION` ở đầu `sw.js` (và `APP_VERSION` trong `js/views/settings.js`), rồi trong thư mục
+này chạy `git add -A`, `git commit -m "…"` và `git push`. Khoảng một phút sau GitHub Pages có bản mới; lần mở app
+kế tiếp, máy tự tải về. Quên tăng `VERSION` thì máy đã cài vẫn giữ bản cũ. Muốn lên bản mới của thư viện Claude
+thì xem `vendor/README.md`.
 
 ## Chạy thử và kiểm thử trên máy tính
 
