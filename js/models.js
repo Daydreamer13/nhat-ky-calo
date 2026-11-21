@@ -3,6 +3,7 @@
 
 import * as L from "./logic.js";
 import * as W from "./words.js";
+import { DISHES } from "./dishes.js";
 
 /** Trạng thái một ô ngày trên dải tuần / lịch tháng. */
 function cellStatus(days, k, c) {
@@ -57,11 +58,12 @@ export function todayModel(S, c, o) {
   const has = (id) => groups.find((g) => g.id === id).meals.length > 0;
 
   // ô mời chụp bữa kế tiếp (chỉ hôm nay): bữa chính đầu tiên còn trống tính từ giờ hiện tại
-  let nextSlot = null;
+  let nextSlot = null, openSlots = [];
   if (isToday) {
     const t = o.hour + (o.minute || 0) / 60;
     const order = t < 10.5 ? ["sang", "trua", "toi"] : t < 15.5 ? ["trua", "toi"] : t < 22 ? ["toi"] : [];
-    nextSlot = order.find((id) => !has(id)) || null;
+    openSlots = order.filter((id) => !has(id));
+    nextSlot = openSlots[0] || null;
   }
 
   // đạm · bột · béo so với mức tham chiếu 25% · 45% · 30% năng lượng mục tiêu
@@ -84,7 +86,16 @@ export function todayModel(S, c, o) {
   }
 
   const noteText = isToday ? W.noteOfDay(S.settings.notes, key) : null;
-  const favs = L.frequentMeals(S.days, c.todayKey, S.favs, o.favLimit || 8).map((f, i) => ({ i, name: f.name, kcal: f.kcal, pinned: f.pinned, ph: f.ph }));
+  const freq = L.frequentMeals(S.days, c.todayKey, S.favs, o.favLimit || 8);
+  const favs = freq.map((f, i) => ({ i, name: f.name, kcal: f.kcal, pinned: f.pinned, ph: f.ph }));
+
+  // gợi ý ăn gì với số kcal còn lại (chỉ hôm nay, khi chưa vượt mục tiêu và không có bữa nào đang chờ tính)
+  const suggest = isToday && !over && !meals.some((x) => x.pending)
+    ? L.suggestMeals({
+        dishes: DISHES, slot: nextSlot, openSlots, left, own: freq, eaten: meals.map((x) => x.name),
+        lowProtein: totals.count > 0 && totals.p / ref.p < totals.c / ref.c - 0.1, seed: key, offset: o.sugOffset || 0,
+      })
+    : null;
 
   return {
     key, isToday, pastStatus,
@@ -108,6 +119,7 @@ export function todayModel(S, c, o) {
     pendingCount: meals.filter((m) => m.pending).length,
     nextSlot,
     favs,
+    suggest,
     you,
     hints: {
       noKey: !S.settings.apiKey && !S.meta.seen["hint:nokey"],

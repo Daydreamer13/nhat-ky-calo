@@ -17,6 +17,12 @@ export function shiftWeek(n) {
 }
 export function resetWeek() { weekAnchor = null; }
 
+/* ---------------- gợi ý bữa ăn: lượt đang hiện ---------------- */
+let sugOffset = 0; // bấm "Đổi món" thì sang lượt gợi ý kế tiếp
+let sugShown = { slot: null, items: [] }; // đúng những món đang hiện trên màn (app.js ghi theo số thứ tự)
+export function moreSuggestions() { sugOffset++; }
+export const suggestionAt = (i) => (sugShown.items[i] ? { slot: sugShown.slot, ...sugShown.items[i] } : null);
+
 /* ---------------- mảnh dùng lại ---------------- */
 const ico = (id, cls = "") => html`<svg class="icon ${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
 const num1 = (n) => String(Math.round(n * 10) / 10);
@@ -295,6 +301,31 @@ function meals(m) {
   </section>`;
 }
 
+/* ---------------- gợi ý ăn gì ---------------- */
+const SLOT_NAME = { sang: "bữa sáng", trua: "bữa trưa", toi: "bữa tối" };
+function suggest(m) {
+  const s = m.suggest;
+  if (!s) return "";
+  const main = SLOT_NAME[s.slot];
+  return html`<section class="usual suggest" aria-label="Gợi ý món ăn">
+    <header class="section-head">
+      <h2 class="section-title">${main ? "Gợi ý cho " + main : "Ăn nhẹ gì nhỉ?"}</h2>
+      <p class="section-meta">${main ? html`khoảng <b class="nowrap">${L.fmtInt(s.budget)} kcal</b>` : html`còn <b class="nowrap">${L.fmtInt(m.kcal.left)} kcal</b>`}</p>
+    </header>
+    <div class="sugs">
+      ${s.items.map((x, i) => html`<button class="fav sug" data-act="sug:${i}" aria-label="Ghi ${x.name}, ${L.fmtInt(x.kcal)} kcal">
+        <span class="chip__plus">${ico("i-plus", "icon--sm")}</span>
+        <span class="fav__body"><span class="fav__name">${x.name}</span><span class="sug__q">${x.own ? "Món " + m.you + " hay ăn" : x.q}</span></span>
+        <span class="sug__kcal"><b>${L.fmtInt(x.kcal)}</b>kcal</span>
+      </button>`)}
+    </div>
+    <div class="sug-foot">
+      <p class="fine">Chạm để ghi luôn. Số kcal là ước tính cho một suất thường gặp.</p>
+      ${s.more ? html`<button class="sug-more" data-act="sug-more">Đổi món</button>` : ""}
+    </div>
+  </section>`;
+}
+
 /* ---------------- món hay ăn ---------------- */
 function usual(m) {
   if (!m.favs.length) return "";
@@ -353,7 +384,8 @@ function water(m) {
 export function viewToday() {
   const now = new Date();
   const hour = now.getHours();
-  const m = todayModel(S, ctx(), { hour, minute: now.getMinutes(), weekAnchor });
+  const m = todayModel(S, ctx(), { hour, minute: now.getMinutes(), weekAnchor, sugOffset });
+  sugShown = m.suggest ? { slot: m.suggest.slot, items: m.suggest.items } : { slot: null, items: [] };
   return html`
     ${header(m, hour)}
     ${weekStrip(m)}
@@ -361,6 +393,7 @@ export function viewToday() {
     ${recap(m)}
     ${note(m)}
     ${hints(m)}
+    ${suggest(m)}
     ${meals(m)}
     ${usual(m)}
     ${water(m)}`;

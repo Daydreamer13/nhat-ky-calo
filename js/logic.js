@@ -538,6 +538,66 @@ export function badgeStates(stats, earned = {}) {
  * Món hay ăn — ghim tay + tự rút ra từ lịch sử
  * ------------------------------------------------------------------ */
 export const normName = (s) => String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+/* ------------------------------------------------------------------ *
+ * Gợi ý bữa ăn theo số kcal còn lại
+ * ------------------------------------------------------------------ */
+const SLOT_SHARE = { sang: 0.3, trua: 0.4, toi: 0.3 }; // phần năng lượng trong ngày của ba bữa chính
+const hash01 = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return ((h >>> 0) % 100000) / 100000; };
+/**
+ * Chọn vài món vừa với số kcal còn lại. Hàm thuần: cùng đầu vào thì cùng kết quả (seed đổi theo ngày, offset đổi khi bấm "Đổi món").
+ * @param {object} o
+ * @param {{n:string,q:string,k:number,p:number,c:number,f:number,slots:string[]}[]} o.dishes  danh sách món (js/dishes.js)
+ * @param {string|null} o.slot        bữa chính sắp tới ('sang' | 'trua' | 'toi'), null nếu không còn bữa chính nào
+ * @param {string[]} [o.openSlots]    các bữa chính còn chưa ăn tính từ bây giờ (gồm cả slot) — để chia phần kcal còn lại
+ * @param {number} o.left             kcal còn lại hôm nay
+ * @param {{name:string,kcal:number,items:object[]}[]} [o.own]  món hay ăn của chính người dùng (ưu tiên một món vừa tầm)
+ * @param {string[]} [o.eaten]        tên các món đã ăn hôm nay (không gợi ý lại)
+ * @param {boolean} [o.lowProtein]    hôm nay đang thiếu đạm so với bột: nghiêng về món nhiều đạm
+ * @returns {null | {slot:string, budget:number, more:boolean, items:{name:string,q:string,kcal:number,own:boolean,items:object[]}[]}}
+ */
+export function suggestMeals({ dishes, slot, openSlots = [], left, own = [], eaten = [], lowProtein = false, seed = "", offset = 0, limit = 3 }) {
+  left = Math.round(num(left));
+  if (!(left >= 40) || !Array.isArray(dishes)) return null; // gần chạm mục tiêu rồi: không mời ăn thêm
+  const skip = new Set(eaten.map(normName));
+  const pick = (kind, lo, hi) => {
+    const pool = dishes.filter((d) => d.slots.includes(kind) && !skip.has(normName(d.n)) && d.k <= hi);
+    const fit = pool.filter((d) => d.k >= lo);
+    // Không có món nào vừa tầm thì lấy những món nặng nhất mà vẫn nằm trong mức cho phép.
+    const list = fit.length >= 2 ? fit : pool.sort((a, b) => b.k - a.k).slice(0, 6);
+    const rank = (d) => hash01(seed + "|" + d.n) - (lowProtein ? 0.6 * ((d.p * 4) / Math.max(1, d.k)) : 0);
+    return list.map((d) => ({ d, r: rank(d) })).sort((a, b) => a.r - b.r).map((x) => x.d);
+  };
+  let kind = SLOT_SHARE[slot] ? slot : "vat";
+  let budget, lo, list = [];
+  if (kind !== "vat") {
+    const open = openSlots.filter((s) => SLOT_SHARE[s]);
+    const sum = open.reduce((a, s) => a + SLOT_SHARE[s], 0) || SLOT_SHARE[kind];
+    // Phần của bữa này trong số kcal còn lại, nhưng không quá 700: còn dư nhiều cũng không gợi ý dồn hết vào một bữa.
+    budget = Math.min(700, Math.round((left * SLOT_SHARE[kind]) / Math.max(sum, SLOT_SHARE[kind])));
+    lo = budget * 0.55;
+    list = pick(kind, lo, budget * 1.08);
+    if (!list.length) kind = "vat"; // còn quá ít cho một bữa chính: gợi ý món nhẹ
+  }
+  if (kind === "vat") {
+    budget = Math.min(left, 300);
+    lo = 0;
+    list = pick("vat", 0, budget * 1.05);
+  }
+  if (!list.length) return null;
+  const mine = own
+    .filter((f) => f && f.items && f.items.length && !skip.has(normName(f.name)) && f.kcal >= Math.max(lo, 30) && f.kcal <= budget * 1.08)
+    .sort((a, b) => Math.abs(a.kcal - budget * 0.85) - Math.abs(b.kcal - budget * 0.85))
+    .slice(0, 1)
+    .map((f) => ({ name: f.name, q: "", kcal: f.kcal, own: true, items: f.items.map((it) => ({ ...it })) }));
+  const taken = new Set(mine.map((x) => normName(x.name)));
+  const all = [...mine, ...list.filter((d) => !taken.has(normName(d.n))).map((d) => ({ name: d.n, q: d.q, kcal: d.k, own: false, items: [{ n: d.n, q: d.q, k: d.k, p: d.p, c: d.c, f: d.f }] }))];
+  const n = Math.min(limit, all.length);
+  const start = all.length > n ? (Math.max(0, offset) * n) % all.length : 0;
+  const items = [];
+  for (let i = 0; i < n; i++) items.push(all[(start + i) % all.length]);
+  return { slot: kind, budget, more: all.length > n, items };
+}
+
 export function frequentMeals(days, todayKey, pinned = [], limit = 8, windowDays = 45) {
   const from = addDays(todayKey, -windowDays);
   const groups = new Map();

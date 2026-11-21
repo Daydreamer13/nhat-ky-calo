@@ -1166,3 +1166,64 @@ test("món hay ăn: bữa không có giờ tính là bữa sau cùng của ngày
   const f = L.frequentMeals(days, "2026-11-20");
   assert.deepEqual(f.map((x) => [x.name, x.kcal, x.count]), [["Chè", 250, 2], ["Phở bò", 460, 2]]);
 });
+
+test("gợi ý bữa ăn: vừa với số kcal còn lại, đúng bữa, không lặp món đã ăn, đổi món thì ra món khác", async () => {
+  const { DISHES } = await import("../js/dishes.js");
+  // danh sách món: đủ trường, số hợp lý, năng lượng từ đạm/bột/béo khớp kcal trong khoảng 20%
+  for (const d of DISHES) {
+    assert.ok(d.n && d.q && d.slots.length, d.n);
+    assert.ok(d.k >= 30 && d.k <= 800, d.n);
+    const fromMacros = d.p * 4 + d.c * 4 + d.f * 9;
+    assert.ok(Math.abs(fromMacros - d.k) <= Math.max(25, d.k * 0.2), `${d.n}: ${fromMacros} so với ${d.k}`);
+  }
+  assert.equal(new Set(DISHES.map((d) => L.normName(d.n))).size, DISHES.length);
+  const ask = (o) => L.suggestMeals({ dishes: DISHES, seed: "2026-11-21", ...o });
+  // buổi trưa, còn 1.000 kcal cho trưa + tối: phần của bữa trưa là 4/7
+  const lunch = ask({ slot: "trua", openSlots: ["trua", "toi"], left: 1000 });
+  assert.equal(lunch.slot, "trua");
+  assert.equal(lunch.budget, 571);
+  assert.equal(lunch.items.length, 3);
+  for (const x of lunch.items) { assert.ok(x.kcal <= 571 * 1.08 && x.kcal >= 571 * 0.55, x.name); assert.ok(DISHES.find((d) => d.n === x.name).slots.includes("trua")); }
+  // chỉ còn bữa tối: được dùng hết phần còn lại, không món nào vượt
+  const dinner = ask({ slot: "toi", openSlots: ["toi"], left: 380 });
+  assert.equal(dinner.budget, 380);
+  for (const x of dinner.items) assert.ok(x.kcal <= 380 * 1.08, x.name);
+  // còn quá ít cho một bữa chính → chuyển sang món nhẹ; gần chạm mục tiêu → không mời ăn thêm
+  const tiny = ask({ slot: "toi", openSlots: ["toi"], left: 120 });
+  assert.equal(tiny.slot, "vat");
+  for (const x of tiny.items) assert.ok(x.kcal <= 126, x.name);
+  assert.equal(ask({ slot: "toi", openSlots: ["toi"], left: 30 }), null);
+  assert.equal(ask({ slot: null, left: -200 }), null);
+  // hết bữa chính: món nhẹ, tối đa 300 kcal
+  const snack = ask({ slot: null, left: 900 });
+  assert.equal(snack.slot, "vat");
+  assert.equal(snack.budget, 300);
+  // không gợi ý lại món đã ăn hôm nay; cùng đầu vào thì cùng kết quả; "Đổi món" ra món khác
+  const first = lunch.items[0].name;
+  assert.ok(!ask({ slot: "trua", openSlots: ["trua", "toi"], left: 1000, eaten: [first.toUpperCase()] }).items.some((x) => x.name === first));
+  assert.deepEqual(ask({ slot: "trua", openSlots: ["trua", "toi"], left: 1000 }), lunch);
+  const next = ask({ slot: "trua", openSlots: ["trua", "toi"], left: 1000, offset: 1 });
+  assert.ok(lunch.more && next.items.every((x) => !lunch.items.some((y) => y.name === x.name)));
+  // món hay ăn của chính người dùng mà vừa tầm thì đứng đầu, ghi lại đúng các món của nó
+  const own = [{ name: "Cơm nhà", kcal: 520, items: [{ n: "Cơm", k: 260 }, { n: "Cá kho", k: 260 }] }, { name: "Trà sữa", kcal: 900, items: [{ n: "Trà sữa", k: 900 }] }];
+  const mine = ask({ slot: "trua", openSlots: ["trua", "toi"], left: 1000, own });
+  assert.equal(mine.items[0].name, "Cơm nhà");
+  assert.equal(mine.items[0].own, true);
+  assert.equal(mine.items[0].items.length, 2);
+  assert.ok(!mine.items.some((x) => x.name === "Trà sữa"));
+  // thiếu đạm: lượt gợi ý nhiều đạm hơn lượt thường
+  const share = (r) => r.items.reduce((a, x) => a + (x.items[0].p * 4) / x.kcal, 0);
+  assert.ok(share(ask({ slot: "toi", openSlots: ["toi"], left: 450, lowProtein: true })) >= share(ask({ slot: "toi", openSlots: ["toi"], left: 450 })));
+});
+
+test("mô hình Hôm nay: có gợi ý khi còn kcal, không có khi xem ngày cũ hoặc đã vượt mục tiêu", () => {
+  const { S, c } = seededState("2026-11-20");
+  const m = M.todayModel(S, c, { hour: 12 });
+  assert.ok(m.suggest && m.suggest.items.length > 0);
+  const names = (S.days[S.today]?.meals || []).map((x) => L.normName(x.name));
+  assert.ok(m.suggest.items.every((x) => !names.includes(L.normName(x.name))));
+  S.days[S.today] = { meals: [meal(c.target + 600)] };
+  assert.equal(M.todayModel(S, c, { hour: 12 }).suggest, null);
+  S.viewDay = "2026-11-19";
+  assert.equal(M.todayModel(S, c, { hour: 12 }).suggest, null);
+});

@@ -5,7 +5,7 @@ import { S } from "./state.js";
 import * as L from "./logic.js";
 import { html, raw, $, $$, setHtml, toast, sheetOpen, canPromptInstall, promptInstall, onInstallChange, buzz } from "./ui.js";
 import { renderOnboarding, leaveOnboarding, restoreFromFile } from "./views/onboarding.js";
-import { viewToday, shiftWeek, resetWeek } from "./views/today.js";
+import { viewToday, shiftWeek, resetWeek, moreSuggestions, suggestionAt } from "./views/today.js";
 import { viewJourney, shiftMonth } from "./views/journey.js";
 import { tabBar } from "./views/chrome.js";
 import { openSettings, importFromFile } from "./views/settings.js";
@@ -183,6 +183,15 @@ document.addEventListener("click", async (e) => {
       if (r) { fx.add("fed"); buzz(10); toast(`Đã ghi ${f.name} · ${L.fmtInt(L.mealTotals(r.meal).kcal)} kcal.`, { label: "Hoàn tác", fn: () => St.deleteMeal(r.key, r.meal.id) }); }
       break;
     }
+    case "sug": {
+      // Món gợi ý: ghi ngay vào đúng bữa đang được gợi ý, như một món hay ăn (có Hoàn tác).
+      const s = suggestionAt(Number(parts[1]));
+      if (!s) break;
+      const r = St.addReadyMeal({ name: s.name, items: s.items.map((it) => ({ ...it })), src: "manual", type: s.slot });
+      if (r) { fx.add("fed"); buzz(10); toast(`Đã ghi ${s.name} · ${L.fmtInt(L.mealTotals(r.meal).kcal)} kcal.`, { label: "Hoàn tác", fn: () => St.deleteMeal(r.key, r.meal.id) }); }
+      break;
+    }
+    case "sug-more": moreSuggestions(); schedule(); break;
     case "water": {
       const n = Number(parts[1]);
       const cur = St.dayAt(S.viewDay).water || 0;
