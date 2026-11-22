@@ -1227,3 +1227,45 @@ test("mô hình Hôm nay: có gợi ý khi còn kcal, không có khi xem ngày c
   S.viewDay = "2026-11-19";
   assert.equal(M.todayModel(S, c, { hour: 12 }).suggest, null);
 });
+
+test("thói quen và bản tóm tắt gửi Claude: đúng số, không lộ tên, lời nhận xét đi theo sao lưu", () => {
+  const { S, c } = seededState("2026-11-20");
+  const h = L.eatingHabits(S.days, S.today, c.target);
+  assert.ok(h.days >= 20 && h.avgKcal > 800 && h.avgKcal < 2500);
+  assert.equal(h.share.p + h.share.c + h.share.f >= 98 && h.share.p + h.share.c + h.share.f <= 102, true);
+  assert.ok(h.top.length > 0 && h.top.every((d) => d.count >= 2 && d.kcal > 0));
+  assert.ok(h.top[0].count >= h.top[h.top.length - 1].count);
+  // ngày đang xét không tính vào thói quen; nhật ký trống thì không có thói quen
+  assert.equal(L.eatingHabits({ [S.today]: S.days[S.today] }, S.today, c.target), null);
+  assert.equal(L.eatingHabits({}, S.today, c.target), null);
+
+  const text = L.daySummary({ days: S.days, key: S.today, todayKey: S.today, target: c.target, you: "em", hour: 20, waterGoal: 8 });
+  assert.match(text, /^Xưng hô: em\n/);
+  assert.match(text, new RegExp(`Mục tiêu trong ngày: ${c.target} kcal`));
+  assert.match(text, /hôm nay, bây giờ khoảng 20 giờ/);
+  assert.match(text, /Thói quen \d+ ngày có ghi gần đây/);
+  assert.match(text, /Món hay lặp lại: /);
+  for (const m of S.days[S.today].meals) assert.ok(text.includes(m.name), m.name);
+  assert.ok(!text.includes(S.profile.name), "không gửi tên người dùng");
+  assert.ok(text.length < 6000);
+  assert.match(L.daySummary({ days: S.days, key: "2026-11-19", todayKey: S.today, target: c.target }), /\(đã qua\)/);
+  assert.match(L.daySummary({ days: { [S.today]: S.days[S.today] }, key: S.today, todayKey: S.today, target: c.target }), /Chưa đủ dữ liệu các ngày trước/);
+
+  assert.equal(L.mealContext({ target: 1440, eatenBefore: 380, type: "trua" }), "mục tiêu cả ngày khoảng 1440 kcal; trước bữa này đã ghi 380 kcal; đây là bữa trưa.");
+  assert.match(L.mealContext({ target: 1440, eatenBefore: 0, type: "toi", hasTime: false }), /bữa đầu tiên được ghi trong ngày\.$/);
+
+  // dấu vết của ngày đổi khi bữa đổi; lời nhận xét và lời khuyên từng bữa qua được bộ lọc sao lưu, rác thì bị bỏ
+  const day = { meals: [{ ...meal(400), advice: "  Thêm một đĩa rau luộc là đẹp.  " }], rv: { c: "Ngày ổn.", a: "Thêm rau.", t: [{ m: "sang", d: "Phở gà", k: 400, w: "nhẹ bụng" }, { m: "khuya", d: "x", k: 1 }, { m: "toi", d: "", k: 300 }], sig: "1:400", on: "2026-11-20", junk: 1 } };
+  const clean = L.cleanDay(day);
+  assert.equal(clean.meals[0].advice, "Thêm một đĩa rau luộc là đẹp.");
+  assert.deepEqual(clean.rv, { c: "Ngày ổn.", a: "Thêm rau.", t: [{ m: "sang", d: "Phở gà", k: 400, w: "nhẹ bụng" }], sig: "1:400", on: "2026-11-20" });
+  assert.equal(L.reviewSig(clean), "1:400");
+  assert.equal(L.cleanDay({ meals: [meal(400)], rv: { c: {} } }).rv, undefined);
+  assert.equal(L.cleanDay({ meals: [meal(400)], rv: "x" }).rv, undefined);
+  const m = M.todayModel(S, c, { hour: 12 });
+  assert.equal(m.review.has, false);
+  S.days[S.today].rv = { c: "Ổn.", a: "", t: [], sig: L.reviewSig(S.days[S.today]), on: S.today };
+  assert.equal(M.todayModel(S, c, { hour: 12 }).review.stale, false);
+  S.days[S.today].meals.push(meal(100));
+  assert.equal(M.todayModel(S, c, { hour: 12 }).review.stale, true);
+});

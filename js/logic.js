@@ -539,6 +539,103 @@ export function badgeStates(stats, earned = {}) {
  * ------------------------------------------------------------------ */
 export const normName = (s) => String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
 /* ------------------------------------------------------------------ *
+ * Thói quen ăn uống và bản tóm tắt gửi Claude
+ * ------------------------------------------------------------------ */
+/** Dấu vết của các bữa trong ngày: đổi khi thêm, bớt hay sửa bữa — để biết lời nhận xét đã cũ. */
+export const reviewSig = (day) => { const t = dayTotals(day); return t.count + ":" + t.kcal; };
+
+/**
+ * Thói quen rút từ nhật ký mấy tuần gần đây (không tính ngày đang xét): ăn bao nhiêu, bữa nào nặng, món nào hay lặp lại.
+ * Nhật ký vốn đã lưu mọi bữa; hàm này chỉ đọc lại để lời nhận xét và gợi ý sát với người dùng hơn.
+ */
+export function eatingHabits(days, uptoKey, target, windowDays = 28) {
+  const from = addDays(uptoKey, -windowDays);
+  const keys = Object.keys(days || {}).filter((k) => isKey(k) && k >= from && k < uptoKey && hasLog(days[k])).sort();
+  const byType = {};
+  for (const t of MEAL_TYPES) byType[t.id] = { kcal: 0, days: 0 };
+  const dishes = new Map();
+  let kcal = 0, p = 0, c = 0, f = 0, over = 0, low = 0, counted = 0;
+  for (const k of keys) {
+    const day = days[k];
+    const done = (day.meals || []).filter((m) => m.items && m.items.length);
+    if (!done.length) continue;
+    counted++;
+    const t = dayTotals({ meals: done });
+    const tg = targetForDay(day, target);
+    kcal += t.kcal; p += t.p; c += t.c; f += t.f;
+    if (tg && t.kcal > tg * OVER_TOLERANCE) over++;
+    if (tg && t.kcal < tg * LOW_SHARE) low++;
+    const seenType = new Set();
+    for (const m of done) {
+      const mk = mealTotals(m).kcal;
+      if (byType[m.type]) { byType[m.type].kcal += mk; seenType.add(m.type); }
+      const id = normName(m.name);
+      if (!id) continue;
+      const d = dishes.get(id) || { name: m.name, count: 0, kcal: 0, type: m.type };
+      d.count++; d.kcal += mk; d.name = m.name; d.type = m.type;
+      dishes.set(id, d);
+    }
+    for (const id of seenType) byType[id].days++;
+  }
+  if (!counted) return null;
+  const energy = p * 4 + c * 4 + f * 9;
+  const pct = (x) => (energy ? Math.round((x / energy) * 100) : 0);
+  return {
+    days: counted,
+    avgKcal: Math.round(kcal / counted),
+    over, low,
+    share: { p: pct(p * 4), c: pct(c * 4), f: pct(f * 9) },
+    byType: Object.fromEntries(MEAL_TYPES.map((t) => [t.id, { avg: byType[t.id].days ? Math.round(byType[t.id].kcal / byType[t.id].days) : 0, days: byType[t.id].days }])),
+    top: [...dishes.values()].filter((d) => d.count >= 2).sort((a, b) => b.count - a.count).slice(0, 8).map((d) => ({ name: d.name.slice(0, 60), count: d.count, kcal: Math.round(d.kcal / d.count), type: d.type })),
+  };
+}
+
+const TYPE_LABEL = Object.fromEntries(MEAL_TYPES.map((t) => [t.id, t.label]));
+/** Một dòng bối cảnh gửi kèm ảnh, để lời nhận xét từng bữa biết hôm nay đã ăn tới đâu. */
+export function mealContext({ target, eatenBefore, type, hasTime = true }) {
+  const parts = [`mục tiêu cả ngày khoảng ${Math.round(target)} kcal`, eatenBefore > 0 ? `trước bữa này đã ghi ${Math.round(eatenBefore)} kcal` : "đây là bữa đầu tiên được ghi trong ngày"];
+  if (hasTime && TYPE_LABEL[type]) parts.push(`đây là ${TYPE_LABEL[type].toLowerCase()}`);
+  return parts.join("; ") + ".";
+}
+
+/**
+ * Bản tóm tắt bằng chữ của một ngày, để nhờ Claude nhận xét. Không có tên người dùng, không có ảnh.
+ * @param {{days:object, key:string, todayKey:string, target:number, you:string, hour?:number, waterGoal?:number}} o
+ */
+export function daySummary({ days, key, todayKey, target, you = "bạn", hour = null, waterGoal = 0 }) {
+  const day = days[key] || { meals: [] };
+  const done = (day.meals || []).filter((m) => m.items && m.items.length);
+  const t = dayTotals({ meals: done });
+  const lines = [];
+  lines.push(`Xưng hô: ${you}`);
+  lines.push(key === todayKey
+    ? `Ngày: ${longDate(key)} (hôm nay${hour != null ? `, bây giờ khoảng ${hour} giờ` : ""}; ngày có thể chưa kết thúc, các bữa chưa ghi là chưa ăn hoặc chưa ghi)`
+    : `Ngày: ${longDate(key)} (đã qua)`);
+  lines.push(`Mục tiêu trong ngày: ${Math.round(target)} kcal. Đã ghi: ${t.kcal} kcal (${Math.round((t.kcal / Math.max(1, target)) * 100)}% mục tiêu); đạm ${Math.round(t.p)} g, bột ${Math.round(t.c)} g, béo ${Math.round(t.f)} g.`);
+  if (waterGoal) lines.push(`Nước: ${day.water || 0}/${waterGoal} ly.`);
+  lines.push("Các bữa đã ghi:");
+  for (const type of MEAL_TYPES) {
+    for (const m of done.filter((x) => x.type === type.id)) {
+      const items = m.items.slice(0, 8).map((it) => { const a = itemTotals(it); return `${String(it.n).slice(0, 50)}${it.q ? " (" + String(it.q).slice(0, 30) + ")" : ""} ${a.kcal} kcal`; }).join("; ");
+      lines.push(`- ${type.label}${m.t ? " " + m.t : ""}: ${String(m.name).slice(0, 80)} — ${mealTotals(m).kcal} kcal [${items}]`);
+    }
+  }
+  const missing = MEAL_TYPES.filter((x) => x.id !== "vat" && !done.some((m) => m.type === x.id)).map((x) => x.label.toLowerCase());
+  if (missing.length) lines.push(`Chưa ghi: ${missing.join(", ")}.`);
+  const h = eatingHabits(days, key, target);
+  if (h && h.days >= 3) {
+    lines.push("");
+    lines.push(`Thói quen ${h.days} ngày có ghi gần đây: trung bình ${h.avgKcal} kcal mỗi ngày; ${h.over} ngày vượt mục tiêu, ${h.low} ngày ăn dưới 80% mục tiêu; năng lượng từ đạm ${h.share.p}%, bột ${h.share.c}%, béo ${h.share.f}%.`);
+    lines.push("Trung bình theo bữa: " + MEAL_TYPES.map((x) => `${x.label.toLowerCase()} ${h.byType[x.id].avg} kcal (${h.byType[x.id].days}/${h.days} ngày có ghi)`).join("; ") + ".");
+    if (h.top.length) lines.push("Món hay lặp lại: " + h.top.map((d) => `${d.name} (${d.count} lần, khoảng ${d.kcal} kcal, ${(TYPE_LABEL[d.type] || "").toLowerCase()})`).join("; ") + ".");
+  } else {
+    lines.push("");
+    lines.push("Chưa đủ dữ liệu các ngày trước để nói về thói quen.");
+  }
+  return lines.join("\n");
+}
+
+/* ------------------------------------------------------------------ *
  * Gợi ý bữa ăn theo số kcal còn lại
  * ------------------------------------------------------------------ */
 const SLOT_SHARE = { sang: 0.3, trua: 0.4, toi: 0.3 }; // phần năng lượng trong ngày của ba bữa chính
@@ -587,7 +684,7 @@ export function suggestMeals({ dishes, slot, openSlots = [], left, own = [], eat
   const mine = own
     .filter((f) => f && f.items && f.items.length && !skip.has(normName(f.name)) && f.kcal >= Math.max(lo, 30) && f.kcal <= budget * 1.08)
     .sort((a, b) => Math.abs(a.kcal - budget * 0.85) - Math.abs(b.kcal - budget * 0.85))
-    .slice(0, 1)
+    .slice(0, 2)
     .map((f) => ({ name: f.name, q: "", kcal: f.kcal, own: true, items: f.items.map((it) => ({ ...it })) }));
   const taken = new Set(mine.map((x) => normName(x.name)));
   const all = [...mine, ...list.filter((d) => !taken.has(normName(d.n))).map((d) => ({ name: d.n, q: d.q, kcal: d.k, own: false, items: [{ n: d.n, q: d.q, k: d.k, p: d.p, c: d.c, f: d.f }] }))];
@@ -692,7 +789,17 @@ export function cleanMeal(raw) {
   }
   if (raw.conf === "high" || raw.conf === "medium" || raw.conf === "low") m.conf = raw.conf;
   if (typeof raw.note === "string" && raw.note.trim()) m.note = raw.note.trim().slice(0, 240);
+  if (typeof raw.advice === "string" && raw.advice.trim()) m.advice = raw.advice.trim().slice(0, 400);
   return m;
+}
+/** Lời nhận xét cuối ngày của Claude đi theo ngày trong file sao lưu: { c, a, t:[{m,d,k,w}], sig, on }. */
+function cleanReview(raw) {
+  if (!raw || typeof raw !== "object" || typeof raw.c !== "string" || !raw.c.trim()) return null;
+  const t = (Array.isArray(raw.t) ? raw.t : [])
+    .filter((x) => x && typeof x === "object" && ["sang", "trua", "toi"].includes(x.m) && typeof x.d === "string" && x.d.trim())
+    .slice(0, 3)
+    .map((x) => ({ m: x.m, d: x.d.trim().slice(0, 120), k: clamp(Math.round(num(x.k)), 0, 2000), w: typeof x.w === "string" ? x.w.trim().slice(0, 120) : "" }));
+  return { c: raw.c.trim().slice(0, 700), a: typeof raw.a === "string" ? raw.a.trim().slice(0, 500) : "", t, sig: typeof raw.sig === "string" ? raw.sig.slice(0, 24) : "", on: isKey(raw.on) ? raw.on : "" };
 }
 export function cleanDay(raw) {
   if (!raw || typeof raw !== "object") return null;
@@ -706,6 +813,8 @@ export function cleanDay(raw) {
   if (water > 0) day.water = clamp(water, 0, 30);
   if (num(raw.tg) >= 800 && num(raw.tg) <= 6000) day.tg = Math.round(num(raw.tg));
   if (num(raw.td) >= 800 && num(raw.td) <= 8000) day.td = Math.round(num(raw.td));
+  const rv = day.meals.length ? cleanReview(raw.rv) : null;
+  if (rv) day.rv = rv;
   return day.meals.length || day.weight != null || day.water ? day : null;
 }
 /** Khoá Claude hợp lệ về hình thức ("sk-ant-…"); không kiểm tra được đúng sai ở đây. */

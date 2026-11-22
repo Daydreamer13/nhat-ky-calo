@@ -217,3 +217,21 @@
 .sug-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
 .sug-foot .fine { margin: 0; flex: 1; }
 .sug-more { flex: none; min-height: var(--tap); padding: 0 14px; border-radius: var(--r-pill); font-weight: 800; color: var(--leaf-ink, var(--ink)); box-shadow: inset 0 0 0 1.5px var(--leaf-soft); }
+
+/* --- nhận xét cuối ngày của Claude --------------------------------------------- */
+.review { display: flex; flex-direction: column; gap: var(--s2); }
+.review__ask { display: flex; flex-direction: column; gap: var(--s2); padding: 14px 16px; border-radius: var(--r-lg); background: var(--leaf-tint); }
+.review__lead { font-weight: 700; line-height: 1.4; }
+.review__ask .btn { align-self: flex-start; }
+.review__card { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-soft); }
+.review__text, .review__adjust { line-height: 1.5; overflow-wrap: anywhere; }
+.review__adjust { padding: 10px 12px; border-radius: var(--r-md); background: var(--sun-soft); color: var(--sun-ink); font-weight: 600; }
+.review__sub { font: 700 var(--fs-base)/1.3 var(--font-display); color: var(--ink-2); }
+.review__list { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 0; padding: 0; list-style: none; }
+.review__list li { display: flex; align-items: flex-start; gap: 10px; }
+.review__slot { flex: none; min-width: 44px; padding: 3px 8px; border-radius: var(--r-pill); background: var(--leaf-soft); color: var(--leaf-ink); font-size: var(--fs-xs); font-weight: 800; text-align: center; }
+.review__dish { flex: 1; min-width: 0; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.review__dish small { display: block; font-size: var(--fs-sm); font-weight: 600; color: var(--ink-2); }
+.review__kcal { flex: none; display: flex; flex-direction: column; align-items: flex-end; font-size: var(--fs-xs); font-weight: 700; color: var(--ink-2); line-height: 1.15; }
+.review__kcal b { font: 700 var(--fs-base)/1.1 var(--font-display); color: var(--ink); }
+.sug-more[disabled] { opacity: .6; }

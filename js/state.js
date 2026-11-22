@@ -5,7 +5,7 @@ import * as L from "./logic.js";
 import { STREAK_MARKS } from "./words.js";
 import { openStore, askPersist, isQuotaError, markDiary } from "./store.js";
 import { prepareImage } from "./photo.js";
-import { analyzeMeal, AiError } from "./ai.js";
+import { analyzeMeal, reviewDay as askReview, aiErrorText, AiError } from "./ai.js";
 
 export const S = {
   ready: false,
@@ -562,6 +562,7 @@ export function stopJob(id, quiet = false) {
 }
 /** Bỏ hết các việc đang chạy (trước khi khôi phục/xoá toàn bộ dữ liệu): kết quả về muộn không được ghi vào đâu nữa. */
 function dropJobs() {
+  epoch++; // lời nhận xét cuối ngày đang chờ về cũng thuộc dữ liệu cũ: bỏ
   for (const j of jobs.values()) { j.dropped = true; j.quiet = true; j.ctl.abort(); }
   jobs.clear();
   waiting.clear();
@@ -694,8 +695,14 @@ async function startJob(key, id) {
     }
     if (!image && !meal.hint) throw new AiError("photo");
     waited = true;
+    // Bối cảnh trong ngày cho lời nhận xét bữa này: mục tiêu của ngày và số kcal đã ghi ở các bữa khác.
+    const c0 = ctx(), d0 = S.days[key];
+    const context = c0 && d0 ? L.mealContext({
+      target: key === S.today ? c0.target : L.targetForDay(d0, c0.target),
+      eatenBefore: L.dayTotals({ meals: d0.meals.filter((x) => x.id !== id) }).kcal, type: meal.type, hasTime: !!meal.t || !!meal.typeEdited,
+    }) : "";
     result = await withJobLock(id, () => analyzeMeal({
-      apiKey: S.settings.apiKey, model: S.settings.model, image, hint: meal.hint || "", signal: job.ctl.signal,
+      apiKey: S.settings.apiKey, model: S.settings.model, image, hint: meal.hint || "", context, signal: job.ctl.signal,
       onPartial: (p) => { job.partial = p; emit("job", { id }); },
     }));
   } catch (e) {
@@ -725,6 +732,7 @@ async function startJob(key, id) {
     if (!m.typeEdited) m.type = m.t ? L.mealTypeAt(m.t, result.kind) : (result.kind === "snack" || result.kind === "drink") ? "vat" : m.type;
     m.conf = result.confidence;
     if (result.note) m.note = result.note; else delete m.note;
+    if (result.advice) m.advice = result.advice; else delete m.advice;
     delete m.pending; delete m.failed; delete m.detail;
     tries.delete(id);
     if (m.ph) store.delPhoto("tmp-" + m.ph).catch(() => {});
@@ -782,6 +790,50 @@ export function resumePending(quick = false) {
       if (!m.pending) { delete m.failed; delete m.detail; m.pending = true; persistDay(key); changed(); }
       startJob(key, m.id);
     }
+  }
+}
+
+/* ---------------- nhận xét cuối ngày ---------------- */
+let epoch = 0; // tăng mỗi lần toàn bộ dữ liệu bị thay (khôi phục, xoá hết)
+const reviewing = new Set(); // các ngày đang chờ Claude nhận xét
+export const isReviewing = (key) => reviewing.has(key);
+// Lỗi nói được nguyên nhân rõ ràng thì báo đúng nguyên nhân; còn lại chỉ nói "chưa nhận xét được".
+const REVIEW_SAY = ["no_key", "offline", "network", "timeout", "sdk", "bad_key", "billing", "spend_cap", "model", "forbidden", "rate", "server"];
+/**
+ * Nhờ Claude nhìn lại một ngày (các bữa đã ghi + thói quen mấy tuần gần đây) và gợi ý cho ngày kế tiếp. Chỉ chạy khi người dùng
+ * bấm nút; kết quả lưu vào chính ngày đó (day.rv) nên mở lại vẫn còn, và đi theo file sao lưu.
+ */
+export async function reviewDay(key) {
+  const day = S.days[key], c = ctx();
+  if (!c || !day || reviewing.has(key)) return;
+  if (!day.meals.some((m) => m.items && m.items.length)) { toast("Chưa có bữa nào đã tính xong để nhận xét."); return; }
+  const you = S.settings.pronoun || "bạn";
+  let code = null;
+  if (!S.settings.apiKey) code = "no_key";
+  else if (typeof navigator !== "undefined" && navigator.onLine === false) code = "offline";
+  if (code) { toast(aiErrorText(code, you, false)); return; }
+  const mine = epoch;
+  reviewing.add(key);
+  changed();
+  try {
+    const summary = L.daySummary({
+      days: S.days, key, todayKey: S.today, target: key === S.today ? c.target : L.targetForDay(day, c.target), you,
+      hour: key === S.today ? new Date().getHours() : null, waterGoal: c.waterGoal,
+    });
+    const r = await askReview({ apiKey: S.settings.apiKey, model: S.settings.model, summary });
+    await refresh();
+    const d = S.days[key];
+    if (mine === epoch && d && L.hasLog(d)) {
+      d.rv = { c: r.comment, a: r.adjust, t: r.tomorrow.map((x) => ({ m: x.meal, d: x.dish, k: x.kcal, w: x.why })), sig: L.reviewSig(d), on: S.today };
+      persistDay(key);
+    }
+  } catch (e) {
+    console.error(e);
+    const ec = e instanceof AiError ? e.code : "unknown";
+    if (mine === epoch) toast(REVIEW_SAY.includes(ec) ? aiErrorText(ec, you, false) : "Chưa nhận xét được lúc này. Thử lại sau một lát nhé.");
+  } finally {
+    reviewing.delete(key);
+    changed();
   }
 }
 

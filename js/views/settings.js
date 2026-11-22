@@ -7,7 +7,7 @@ import { html, raw, $, setHtml, withFocus, openSheet, closeAllSheets, toast, dro
 import { icon } from "../art.js";
 import { MODELS, testKey, aiErrorText } from "../ai.js";
 
-export const APP_VERSION = "1.1.0";
+export const APP_VERSION = "1.2.0";
 /** Lời dặn sức khoẻ: hiện ở màn làm quen, cuối nhóm Hồ sơ và trong Giới thiệu. */
 export const MEDICAL_NOTE = "Nếu đang mang thai, cho con bú hoặc có bệnh cần ăn theo chỉ dẫn, hãy hỏi bác sĩ trước khi ăn kiêng.";
 /** Nhắc nhẹ khi chuỗi trong ô khoá không giống khoá Claude (vẫn cho lưu và kiểm tra). */
@@ -142,7 +142,7 @@ function gAi() {
       <div class="opts" role="group" aria-label="Mức nhận diện">${MODELS.map((m) => html`<button type="button" class="opt" data-set="model:${m.id}" aria-pressed="${P(S.settings.model === m.id)}"><b>${m.name}</b><span>${m.model} · ${m.cost}</span></button>`)}</div>
       <span class="field-hint">Chi phí là ước tính và trừ vào tài khoản Anthropic của khoá. Mức “Chính xác nhất” nhìn món Việt kỹ hơn; hai mức còn lại rẻ hơn nhiều.</span>
     </div>
-    <p class="fine">Ảnh bữa ăn và lời mô tả món được gửi tới Claude (Anthropic) để phân tích. Mọi dữ liệu khác ở lại trên máy này.</p>
+    <p class="fine">Ảnh bữa ăn và lời mô tả món được gửi tới Claude (Anthropic) để phân tích. Khi bấm “Nhận xét”, tên món và số calo của ngày đó cùng thói quen ăn mấy tuần gần đây cũng được gửi đi (không kèm ảnh, không kèm tên). Mọi dữ liệu khác ở lại trên máy này.</p>
   </div>`;
 }
 

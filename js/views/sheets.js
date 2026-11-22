@@ -142,6 +142,7 @@ function totalBlock(m) {
       <li style="--macro:var(--macro-f)">Béo <b>${t.f} g</b></li>
     </ul>` : ""}
     ${m.note ? html`<p class="ms-note">${m.note}</p>` : ""}
+    ${m.advice ? html`<p class="ms-advice"><b>Nhận xét</b>${m.advice}</p>` : ""}
     ${!m.ph && W.CONFIDENCE[m.conf] ? html`<p class="ms-note"><span class="pill conf-${m.conf}">Ước tính: ${W.CONFIDENCE[m.conf].toLowerCase()}</span></p>` : ""}
   </div>`;
 }
@@ -327,7 +328,7 @@ function manualSave(m) {
   updateMeal(ms.key, ms.id, (x) => {
     x.name = name; x.nameEdited = true;
     x.items = [{ n: name, q: "", k: Math.round(kcal), p: 0, c: 0, f: 0, x: 1 }];
-    delete x.failed; delete x.detail; delete x.pending; delete x.conf; delete x.note;
+    delete x.failed; delete x.detail; delete x.pending; delete x.conf; delete x.note; delete x.advice;
   });
   toast(`Đã ghi ${L.fmtInt(kcal)} kcal.`);
 }

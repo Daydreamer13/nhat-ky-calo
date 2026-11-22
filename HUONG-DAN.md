@@ -132,6 +132,11 @@ Các mục đáng thiết lập trong **Lời nhắn và quà**:
   nhật ký. Chạm vào bữa đã ghi để chỉnh khẩu phần (¾, 1, 1¼…), sửa số calo, bỏ món không ăn, hoặc mô tả
   thêm để tính lại.
 - **Món hay ăn**: những món lặp lại (cà phê sữa, chuối…) ghi bằng một chạm.
+- **Gợi ý cho bữa sắp tới**: ba món vừa với số calo còn lại, lấy từ danh sách món có sẵn trong app (không gọi Claude);
+  chạm để ghi, bấm **Đổi món** để xem món khác.
+- **Nhận xét của Claude**: mỗi bữa chụp ảnh hoặc gõ tên có kèm một hai câu nhận xét trong tấm chi tiết bữa ăn.
+  Cuối ngày bấm **Nhận xét hôm nay** để Claude nhìn lại cả ngày, nói nên thêm bớt gì và gợi ý ba bữa cho ngày mai,
+  dựa trên các bữa đã ghi mấy tuần gần đây. Mỗi lần bấm là một lượt gọi Claude (chỉ gửi chữ, rẻ hơn một ảnh).
 - **Gõ tên món**: khi không tiện chụp.
 - **Ly nước**: chạm để đếm ly.
 - **Hành trình**: ghi cân nặng (mỗi tuần một lần là đủ), xem cây hoa, chuỗi ngày, huy hiệu, quà. Gõ nhầm số
@@ -182,7 +187,8 @@ bằng cách chép tay cả thư mục thì xoá `_preview/` trước.
 
 - Số calo từ ảnh là **ước tính**, có thể lệch 20–30%. Chụp từ trên xuống, đủ sáng, thấy cả chén dĩa sẽ chính
   xác hơn.
-- Ảnh bữa ăn (và lời mô tả món) được gửi tới Anthropic để phân tích. Ngoài việc đó app không gọi tới máy chủ
+- Ảnh bữa ăn (và lời mô tả món) được gửi tới Anthropic để phân tích; khi bấm Nhận xét thì tên món, số calo của
+  ngày đó và thói quen ăn mấy tuần gần đây cũng được gửi đi, không kèm ảnh hay tên. Ngoài việc đó app không gọi tới máy chủ
   nào khác: phông chữ, hình vẽ và mọi dữ liệu còn lại đều nằm trong app và trên máy.
 - App dành cho người từ 18 tuổi. App không đặt mức ăn dưới 1.200 kcal (nữ) hay 1.500 kcal (nam), không nhận
   cân mong muốn có BMI dưới 18,5, và không khen những ngày ăn quá ít. Nếu đang mang thai, cho con bú hoặc có

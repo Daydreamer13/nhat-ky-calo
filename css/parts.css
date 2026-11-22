@@ -415,3 +415,7 @@ body.is-reading-photo::after { content: "Đang đọc ảnh…"; position: fixed
 @media (min-width: 560px) {
   #app { box-shadow: 0 0 0 1px var(--leaf-soft), 0 30px 80px -30px rgba(0, 0, 0, .25); }
 }
+
+/* lời nhận xét của Claude về bữa ăn (tấm chi tiết bữa ăn) */
+.ms-advice { padding: 10px 12px; border-radius: var(--r-md); background: var(--leaf-tint); font-size: var(--fs-base); font-weight: 600; line-height: 1.45; overflow-wrap: anywhere; }
+.ms-advice b { display: block; font-size: var(--fs-xs); font-weight: 800; letter-spacing: .02em; color: var(--leaf-ink); }

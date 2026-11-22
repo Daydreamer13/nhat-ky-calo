@@ -192,6 +192,7 @@ document.addEventListener("click", async (e) => {
       break;
     }
     case "sug-more": moreSuggestions(); schedule(); break;
+    case "review": St.reviewDay(S.viewDay); break;
     case "water": {
       const n = Number(parts[1]);
       const cur = St.dayAt(S.viewDay).water || 0;

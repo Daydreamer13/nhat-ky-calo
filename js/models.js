@@ -120,6 +120,8 @@ export function todayModel(S, c, o) {
     nextSlot,
     favs,
     suggest,
+    // lời nhận xét cuối ngày của Claude (nếu đã xin); stale: các bữa đã đổi sau lần nhận xét đó
+    review: { has: !!day.rv, rv: day.rv || null, stale: !!day.rv && day.rv.sig !== L.reviewSig(day), canAsk: !!S.settings.apiKey && meals.some((x) => !x.pending && !x.failed) },
     you,
     hints: {
       noKey: !S.settings.apiKey && !S.meta.seen["hint:nokey"],

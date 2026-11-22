@@ -3,7 +3,7 @@
 // Các con số hình học của SVG (vòng lá, góc xoay, độ mờ) đều tính sẵn ở đây rồi ghi thành
 // thuộc tính thường, không dựa vào calc()/biến CSS bên trong SVG (Safari trên iPhone).
 
-import { S, ctx, stats } from "../state.js";
+import { S, ctx, stats, isReviewing } from "../state.js";
 import { todayModel } from "../models.js";
 import { html, raw, isStandalone, isIOS, canPromptInstall } from "../ui.js";
 import { plantSvg, mealStandIn, glowDef, fireflies } from "../art.js";
@@ -326,6 +326,47 @@ function suggest(m) {
   </section>`;
 }
 
+/* ---------------- nhận xét cuối ngày ---------------- */
+function review(m) {
+  const r = m.review;
+  if (!r.canAsk && !r.has) return "";
+  const busy = isReviewing(m.key);
+  const next = m.isToday ? "Ngày mai thử" : "Ngày kế tiếp thử";
+  if (!r.has) {
+    return html`<section class="review" aria-label="Nhận xét của Claude">
+      <div class="review__ask">
+        <p class="review__lead">${busy ? "Claude đang nhìn lại các bữa của " + m.dayTitle + "…" : "Nhờ Claude nhìn lại các bữa của " + m.dayTitle + " và gợi ý cho ngày mai."}</p>
+        <button class="btn btn--ghost" data-act="review" ${busy ? raw('disabled aria-busy="true"') : ""}>${ico("i-sprout", "icon--md")}${busy ? "Đang nhận xét…" : "Nhận xét " + m.dayTitle}</button>
+      </div>
+      <p class="fine">Chỉ gửi tên món và số calo, không gửi ảnh.</p>
+    </section>`;
+  }
+  const rv = r.rv;
+  return html`<section class="review" aria-label="Nhận xét của Claude">
+    <header class="section-head">
+      <h2 class="section-title">Nhìn lại ${m.dayTitle}</h2>
+      <p class="section-meta">Claude nhận xét</p>
+    </header>
+    <div class="review__card">
+      <p class="review__text">${rv.c}</p>
+      ${rv.a ? html`<p class="review__adjust"><b>Thêm bớt:</b> ${rv.a}</p>` : ""}
+      ${rv.t && rv.t.length ? html`<div class="review__next">
+        <h3 class="review__sub">${next}</h3>
+        <ul class="review__list">${rv.t.map((x) => html`<li>
+          <span class="review__slot">${SLOT_SHORT[x.m] || ""}</span>
+          <span class="review__dish">${x.d}${x.w ? html`<small>${x.w}</small>` : ""}</span>
+          ${x.k ? html`<span class="review__kcal"><b>${L.fmtInt(x.k)}</b>kcal</span>` : ""}
+        </li>`)}</ul>
+      </div>` : ""}
+    </div>
+    <div class="sug-foot">
+      <p class="fine">${r.stale ? "Bữa ăn đã đổi sau lần nhận xét này. " : ""}Gợi ý ăn uống thông thường, không thay lời khuyên của bác sĩ.</p>
+      ${r.canAsk ? html`<button class="sug-more" data-act="review" ${busy ? raw('disabled aria-busy="true"') : ""}>${busy ? "Đang xem…" : "Nhận xét lại"}</button>` : ""}
+    </div>
+  </section>`;
+}
+const SLOT_SHORT = { sang: "Sáng", trua: "Trưa", toi: "Tối" };
+
 /* ---------------- món hay ăn ---------------- */
 function usual(m) {
   if (!m.favs.length) return "";
@@ -395,6 +436,7 @@ export function viewToday() {
     ${hints(m)}
     ${suggest(m)}
     ${meals(m)}
+    ${review(m)}
     ${usual(m)}
     ${water(m)}`;
 }
