@@ -7,7 +7,7 @@ import { html, raw, $, setHtml, withFocus, openSheet, closeAllSheets, toast, dro
 import { icon } from "../art.js";
 import { MODELS, testKey, aiErrorText } from "../ai.js";
 
-export const APP_VERSION = "1.2.0";
+export const APP_VERSION = "1.2.1";
 /** Lời dặn sức khoẻ: hiện ở màn làm quen, cuối nhóm Hồ sơ và trong Giới thiệu. */
 export const MEDICAL_NOTE = "Nếu đang mang thai, cho con bú hoặc có bệnh cần ăn theo chỉ dẫn, hãy hỏi bác sĩ trước khi ăn kiêng.";
 /** Nhắc nhẹ khi chuỗi trong ô khoá không giống khoá Claude (vẫn cho lưu và kiểm tra). */

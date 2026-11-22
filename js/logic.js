@@ -657,10 +657,17 @@ export function suggestMeals({ dishes, slot, openSlots = [], left, own = [], eat
   if (!(left >= 40) || !Array.isArray(dishes)) return null; // gần chạm mục tiêu rồi: không mời ăn thêm
   const skip = new Set(eaten.map(normName));
   const pick = (kind, lo, hi) => {
-    const pool = dishes.filter((d) => d.slots.includes(kind) && !skip.has(normName(d.n)) && d.k <= hi);
+    const ok = (d) => !skip.has(normName(d.n)) && d.k <= hi;
+    const pool = dishes.filter((d) => d.slots.includes(kind) && ok(d));
     const fit = pool.filter((d) => d.k >= lo);
-    // Không có món nào vừa tầm thì lấy những món nặng nhất mà vẫn nằm trong mức cho phép.
-    const list = fit.length >= 2 ? fit : pool.sort((a, b) => b.k - a.k).slice(0, 6);
+    // Ít món vừa tầm (phần kcal của bữa nhỏ) thì nới xuống: lấy những món nặng nhất mà vẫn nằm trong mức cho phép, thiếu nữa
+    // thì thêm món nhẹ — để luôn có đủ món cho một lượt gợi ý và còn món khác khi bấm "Đổi món".
+    if (!pool.length) return []; // không món nào của bữa này vừa: để nơi gọi chuyển sang gợi ý món nhẹ
+    let list = fit;
+    if (fit.length < 5) {
+      list = pool.sort((a, b) => b.k - a.k).slice(0, 6);
+      if (list.length < 5 && kind !== "vat") list = [...list, ...dishes.filter((d) => d.slots.includes("vat") && !d.slots.includes(kind) && ok(d)).sort((a, b) => b.k - a.k).slice(0, 6 - list.length)];
+    }
     const rank = (d) => hash01(seed + "|" + d.n) - (lowProtein ? 0.6 * ((d.p * 4) / Math.max(1, d.k)) : 0);
     return list.map((d) => ({ d, r: rank(d) })).sort((a, b) => a.r - b.r).map((x) => x.d);
   };

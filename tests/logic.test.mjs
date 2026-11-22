@@ -1269,3 +1269,15 @@ test("thói quen và bản tóm tắt gửi Claude: đúng số, không lộ tê
   S.days[S.today].meals.push(meal(100));
   assert.equal(M.todayModel(S, c, { hour: 12 }).review.stale, true);
 });
+
+test("gợi ý bữa ăn: phần kcal của bữa nhỏ vẫn có đủ món và còn món khác để đổi", async () => {
+  const { DISHES } = await import("../js/dishes.js");
+  const cases = [["sang", ["sang", "trua", "toi"]], ["trua", ["trua", "toi"]], ["toi", ["toi"]], [null, []]];
+  for (const [slot, openSlots] of cases) {
+    for (let left = 80; left <= 1600; left += 20) {
+      const r = L.suggestMeals({ dishes: DISHES, slot, openSlots, left, seed: "2026-11-22" });
+      assert.ok(r && r.items.length === 3 && r.more, `${slot} còn ${left} kcal: ${r ? r.items.length + " món, more=" + r.more : "không có gợi ý"}`);
+      for (const x of r.items) assert.ok(x.kcal <= Math.max(r.budget * 1.08, 1), `${slot} ${left}: ${x.name} ${x.kcal} > ${r.budget}`);
+    }
+  }
+});
