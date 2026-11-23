@@ -1281,3 +1281,28 @@ test("gợi ý bữa ăn: phần kcal của bữa nhỏ vẫn có đủ món và
     }
   }
 });
+
+test("hộp quà: quà theo kg và theo ngày đạt, chỉ mở khi đã tới mốc và đã bấm mở", () => {
+  const profile = { startWeight: 60, goalWeight: 54 };
+  const rewards = L.cleanSettings({ rewards: [{ days: 7, text: "Xem phim" }, { kg: 2, text: "Spa" }, { kg: 6, text: "Du lịch" }, { days: "30", text: "Váy mới" }, { days: 7, text: "Trà sữa" }, { days: 400, text: "x" }, { kg: 0, text: "y" }, { days: 3, text: "" }] }).rewards;
+  assert.deepEqual(rewards.map((r) => (r.days ? "d" + r.days : "kg" + r.kg)), ["kg2", "kg6", "d7", "d7", "d30"]);
+  // quà theo ngày không làm đổi các mốc cân nặng
+  assert.deepEqual(L.milestones(profile, rewards).filter((m) => m.reward).map((m) => m.kg), [2, 6]);
+  const list = (prog, seen) => L.giftList(profile, rewards, prog, seen);
+  let g = list({ bestLost: 0, okDays: 0 }, {});
+  assert.deepEqual(g.map((x) => x.id), ["kg:2", "kg:6", "d:7", "d:30"]);
+  assert.ok(g.every((x) => !x.reached && !x.opened));
+  assert.equal(g[2].text, "Xem phim · Trà sữa");
+  assert.equal(g[2].left, 7);
+  assert.equal(g[1].isGoal, true);
+  // tới mốc: chờ mở; chưa bấm thì chưa mở
+  g = list({ bestLost: 2.4, okDays: 9 }, {});
+  assert.deepEqual(g.map((x) => [x.reached, x.opened]), [[true, false], [false, false], [true, false], [false, false]]);
+  assert.equal(g[3].left, 21);
+  // đã bấm mở
+  g = list({ bestLost: 2.4, okDays: 9 }, { "gift:kg:2": "2026-11-20", "gift:d:30": "2026-11-20" });
+  assert.equal(g[0].opened, true);
+  assert.equal(g[2].opened, false);
+  assert.equal(g[3].opened, false, "dấu đã mở không có nghĩa khi chưa tới mốc");
+  assert.deepEqual(L.giftList(profile, [], { bestLost: 9, okDays: 99 }, {}), []);
+});

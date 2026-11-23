@@ -440,6 +440,36 @@ export function weightProgress(profile, current, lowest = current) {
  * Các mốc trên chặng đường: mỗi "bước" kg (tự giãn để không quá 6 mốc), các mốc có quà, và đích.
  * rewards: [{ kg, text }]
  */
+/**
+ * Danh sách hộp quà: quà ở các mốc kg (gộp theo mốc, như milestones) rồi tới quà theo số ngày đạt mục tiêu.
+ * Mỗi hộp: id ("kg:<kg>" | "d:<ngày>"), reached (đã chạm mốc), opened (người dùng đã tự bấm mở — dấu "gift:<id>" trong seen).
+ * Món quà chỉ nên hiện ra khi opened; chưa mở thì là "hộp quà bí mật".
+ * @param {{bestLost:number, okDays:number}} prog  số kg giảm nhiều nhất từng ghi và số ngày đạt mục tiêu
+ */
+export function giftList(profile, rewards, prog, seen = {}) {
+  const out = [];
+  for (const m of milestones(profile, rewards)) {
+    if (!m.reward) continue;
+    const id = "kg:" + m.kg;
+    const reached = num(prog && prog.bestLost) >= m.kg - 1e-9;
+    out.push({ id, kind: "kg", kg: m.kg, isGoal: m.isGoal, weight: round1(profile.startWeight - m.kg), text: m.reward, reached, opened: reached && !!seen["gift:" + id] });
+  }
+  const byDays = new Map();
+  for (const r of rewards || []) {
+    const days = Math.round(num(r && r.days));
+    const text = String((r && r.text) ?? "").trim();
+    if (!(days > 0) || !text) continue;
+    byDays.set(days, byDays.has(days) ? byDays.get(days) + " · " + text : text);
+  }
+  const ok = Math.floor(num(prog && prog.okDays));
+  for (const days of [...byDays.keys()].sort((a, b) => a - b)) {
+    const id = "d:" + days;
+    const reached = ok >= days;
+    out.push({ id, kind: "days", days, left: Math.max(0, days - ok), text: byDays.get(days), reached, opened: reached && !!seen["gift:" + id] });
+  }
+  return out;
+}
+
 export function milestones(profile, rewards = []) {
   const total = round1(profile.startWeight - profile.goalWeight);
   if (!(total > 0)) return [];
@@ -982,11 +1012,16 @@ export function cleanSettings(s = {}) {
   if (MODEL_IDS.includes(s.model)) out.model = s.model;
   if (typeof s.apiKey === "string") out.apiKey = s.apiKey.trim().slice(0, 300);
   out.notes = (Array.isArray(s.notes) ? s.notes : []).map((n) => String(n ?? "").trim().slice(0, 160)).filter(Boolean).slice(0, 20);
+  // Quà có hai loại: theo số kg đã giảm ({ kg, text }) và theo số ngày ăn đạt mục tiêu ({ days, text }).
   out.rewards = (Array.isArray(s.rewards) ? s.rewards : [])
-    .map((r) => ({ kg: round1(num(parseNum(r?.kg) ?? 0)), text: String(r?.text ?? "").trim().slice(0, 60) }))
-    .filter((r) => r.kg > 0 && r.kg <= 150 && r.text)
-    .sort((a, b) => a.kg - b.kg)
-    .slice(0, 8);
+    .map((r) => {
+      const text = String(r?.text ?? "").trim().slice(0, 60);
+      const days = Math.round(num(parseNum(r?.days) ?? 0));
+      return days > 0 ? { days, text } : { kg: round1(num(parseNum(r?.kg) ?? 0)), text };
+    })
+    .filter((r) => r.text && (r.days ? r.days <= 365 : r.kg > 0 && r.kg <= 150))
+    .sort((a, b) => !!a.days - !!b.days || (a.days ? a.days - b.days : a.kg - b.kg))
+    .slice(0, 12);
   return out;
 }
 

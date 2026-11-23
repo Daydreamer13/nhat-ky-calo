@@ -9,7 +9,7 @@ import { viewToday, shiftWeek, resetWeek, moreSuggestions, suggestionAt } from "
 import { viewJourney, shiftMonth } from "./views/journey.js";
 import { tabBar } from "./views/chrome.js";
 import { openSettings, importFromFile } from "./views/settings.js";
-import { openMeal, openTextAdd, openWeight, mealSheetFor } from "./views/sheets.js";
+import { openMeal, openTextAdd, openWeight, mealSheetFor, openGiftBox } from "./views/sheets.js";
 
 const root = $("#app");
 let tab = "today";
@@ -193,6 +193,7 @@ document.addEventListener("click", async (e) => {
     }
     case "sug-more": moreSuggestions(); schedule(); break;
     case "review": St.reviewDay(S.viewDay); break;
+    case "gift": openGiftBox(parts.slice(1).join(":")); break;
     case "water": {
       const n = Number(parts[1]);
       const cur = St.dayAt(S.viewDay).water || 0;

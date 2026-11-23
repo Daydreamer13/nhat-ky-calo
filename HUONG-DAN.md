@@ -123,8 +123,10 @@ Các mục đáng thiết lập trong **Lời nhắn và quà**:
 - **Lời nhắn ký tên là**: ví dụ `anh` → thẻ “Lời nhắn từ anh” ở màn Hôm nay.
 - **Lời nhắn yêu thương**: viết sẵn tới 20 lời; mỗi ngày app hiện một lời, xoay vòng. Lời nhắn cũng hiện
   trong các màn chúc mừng.
-- **Quà theo mốc giảm cân**: ví dụ giảm 2 kg → “Một buổi spa”. Khi cân nặng chạm mốc, app báo tin vui và
-  “mở quà”. Quà đã mở thì không bị khoá lại khi cân nhích lên. Nhớ giữ lời.
+- **Hộp quà bí mật**: hẹn quà theo số kg giảm được (ví dụ giảm 2 kg → “Một buổi spa”) hoặc theo số ngày ăn đạt
+  mục tiêu (ví dụ 7 ngày → “Đi xem phim”). Trước khi tới mốc, vợ chỉ thấy “Hộp quà bí mật”. Tới mốc, app hiện
+  hộp quà còn đóng để vợ tự bấm mở; chưa mở ngay thì hộp vẫn chờ ở màn Hành trình. Trong Cài đặt, nội dung quà
+  được che sẵn, người tặng bấm “Hiện nội dung quà” mới thấy. Quà đã mở thì không bị khoá lại. Nhớ giữ lời.
 
 ## 5. Dùng hằng ngày (để chỉ cho vợ)
 

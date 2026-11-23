@@ -186,6 +186,7 @@ export function journeyModel(S, c, stats, o = {}) {
       lastKey: ws[ws.length - 1].k, entries: ws.length,
     },
     trail,
+    gifts: L.giftList(p, S.settings.rewards, { bestLost: best, okDays: stats.okDays }, S.meta.seen),
     chart,
     plant,
     week,

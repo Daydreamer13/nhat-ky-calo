@@ -286,8 +286,8 @@ function weightPanel(j, todayKey) {
 
 /* ---------------- quà hẹn ở các mốc ---------------- */
 function gifts(j) {
-  const list = j.trail.filter((t) => t.reward);
-  const title = j.partner ? `Quà ${j.partner} hẹn ở mỗi chặng` : "Quà ở mỗi chặng";
+  const list = j.gifts;
+  const title = j.partner ? `Hộp quà ${j.partner} hẹn` : "Hộp quà ở mỗi chặng";
   if (!list.length) {
     return html`<section class="plain" aria-label="${title}">
       <header class="section-head"><h2 class="section-title">${use("i-heart", "")}<span>${title}</span></h2></header>
@@ -297,24 +297,26 @@ function gifts(j) {
       </div>
     </section>`;
   }
-  // Quà đã mở thì vẫn là đã mở, kể cả khi cân nhích lên lại qua mốc (cũng như huy hiệu): models.js xét theo số cân thấp nhất từng ghi.
-  const opened = (g) => !!(g.opened || g.reached);
-  const open = list.filter(opened).length;
+  // Ba trạng thái: chưa tới mốc (hộp khoá, chưa biết bên trong là gì) · đã tới mốc, chờ bấm mở · đã mở (hiện món quà).
+  // Mốc kg tính theo số cân thấp nhất từng ghi nên quà đã tới tay thì không bị khoá lại khi cân nhích lên.
+  const open = list.filter((g) => g.opened).length;
+  const flap = (g) => (g.kind === "days" ? html`${g.days}&nbsp;ngày đạt mục tiêu` : html`${g.isGoal ? "Về đích" : "Mốc"} −${kgText(g.kg)}&nbsp;kg · ${L.fmt1(g.weight)}&nbsp;kg`);
+  const away = (g) => (g.kind === "days" ? html`Còn ${g.left}&nbsp;ngày đạt` : html`Còn ${L.fmt1(Math.max(0, j.weight.current - g.weight))}&nbsp;kg`);
   return html`<section class="plain" aria-label="${title}">
     <header class="section-head">
       <h2 class="section-title">${use("i-heart", "")}<span>${title}</span></h2>
       <p class="section-meta nowrap"><b>${open}</b>/${list.length} đã mở</p>
     </header>
     <ul class="gifts">
-      ${list.map((g) => html`<li class="gift ${opened(g) ? "is-open" : "is-locked"}">
-        <span class="gift__art">${raw(giftArt(opened(g), 56))}</span>
+      ${list.map((g) => html`<li class="gift ${g.opened ? "is-open" : g.reached ? "is-ready" : "is-locked"}">
+        <span class="gift__art">${raw(giftArt(g.opened, 56))}</span>
         <div class="gift__body">
-          <span class="gift__flap">${g.isGoal ? "Về đích" : "Mốc"} −${kgText(g.kg)}&nbsp;kg · ${L.fmt1(g.weight)}&nbsp;kg</span>
-          <span class="gift__name">${g.reward}</span>
-          <span class="gift__state">${opened(g)
-            ? html`${use("i-check")}Đã mở quà`
-            : html`${use("i-lock")}Còn ${L.fmt1(Math.max(0, j.weight.current - g.weight))}&nbsp;kg`}</span>
+          <span class="gift__flap">${flap(g)}</span>
+          <span class="gift__name">${g.opened ? g.text : g.reached ? "Quà đang chờ mở" : "Hộp quà bí mật"}</span>
+          ${g.opened ? html`<span class="gift__state">${use("i-check")}Đã mở quà</span>`
+            : g.reached ? "" : html`<span class="gift__state">${use("i-lock")}${away(g)}</span>`}
         </div>
+        ${g.reached && !g.opened ? html`<button class="btn primary sm gift__open" data-act="gift:${g.id}">Mở quà</button>` : ""}
       </li>`)}
     </ul>
   </section>`;

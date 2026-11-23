@@ -7,7 +7,7 @@ import { html, raw, $, setHtml, withFocus, openSheet, closeAllSheets, toast, dro
 import { icon } from "../art.js";
 import { MODELS, testKey, aiErrorText } from "../ai.js";
 
-export const APP_VERSION = "1.2.2";
+export const APP_VERSION = "1.3.0";
 /** Lời dặn sức khoẻ: hiện ở màn làm quen, cuối nhóm Hồ sơ và trong Giới thiệu. */
 export const MEDICAL_NOTE = "Nếu đang mang thai, cho con bú hoặc có bệnh cần ăn theo chỉ dẫn, hãy hỏi bác sĩ trước khi ăn kiêng.";
 /** Nhắc nhẹ khi chuỗi trong ô khoá không giống khoá Claude (vẫn cho lưu và kiểm tra). */
@@ -172,11 +172,16 @@ function gGift() {
       <div class="tags">${NOTE_IDEAS.filter((n) => !s.notes.includes(n)).slice(0, 4).map((n) => html`<button type="button" class="tag add" data-set="idea" data-text="${n}">${raw(icon("plus"))}<span>${n}</span></button>`)}</div>
     </div>
 
-    <div class="field"><span class="field-label">Quà theo mốc giảm cân</span>
-      <span class="field-hint">Khi giảm được số kg này so với lúc bắt đầu, app báo tin vui kèm món quà.</span>
-      <ul class="list">${s.rewards.map((r, i) => { const kg = L.fmt1(r.kg).replace(",0", ""); return html`<li class="list-row"><b class="num">−${kg} kg</b><span class="grow">${r.text}</span><button type="button" class="icon-btn sm" data-set="delreward:${i}" aria-label="Xoá quà −${kg} kg: ${r.text}">${raw(icon("x"))}</button></li>`; })}</ul>
+    <div class="field"><span class="field-label">Hộp quà bí mật</span>
+      <span class="field-hint">Hẹn quà theo số kg giảm được, hoặc theo số ngày ăn đạt mục tiêu. Tới mốc, app hiện một hộp quà còn đóng; người nhận tự bấm mở mới biết bên trong là gì.</span>
+      ${s.rewards.length ? html`<button type="button" class="btn soft sm" data-set="showgifts" aria-pressed="${P(!!st.showGifts)}">${st.showGifts ? "Ẩn nội dung quà" : "Hiện nội dung quà (dành cho người tặng)"}</button>` : ""}
+      <ul class="list">${s.rewards.map((r, i) => { const at = r.days ? `${r.days} ngày` : `−${L.fmt1(r.kg).replace(",0", "")} kg`; return html`<li class="list-row"><b class="num">${at}</b><span class="grow">${st.showGifts ? r.text : "• • • • •"}</span><button type="button" class="icon-btn sm" data-set="delreward:${i}" aria-label="Xoá quà ở mốc ${at}">${raw(icon("x"))}</button></li>`; })}</ul>
+      <div class="seg" role="group" aria-label="Loại mốc">
+        <button type="button" class="seg-btn" data-set="rewardkind:kg" aria-pressed="${P(st.rk !== "days")}">Theo kg giảm</button>
+        <button type="button" class="seg-btn" data-set="rewardkind:days" aria-pressed="${P(st.rk === "days")}">Theo ngày đạt</button>
+      </div>
       <span class="input-row">
-        <input class="input kg" id="rewardKg" type="text" inputmode="decimal" maxlength="5" placeholder="kg" aria-label="Số kg giảm" autocomplete="off">
+        <input class="input kg" id="rewardKg" type="text" inputmode="${st.rk === "days" ? "numeric" : "decimal"}" maxlength="5" placeholder="${st.rk === "days" ? "ngày" : "kg"}" aria-label="${st.rk === "days" ? "Số ngày đạt mục tiêu" : "Số kg giảm"}" autocomplete="off">
         <input class="input" id="rewardText" type="text" maxlength="60" placeholder="Món quà…" aria-label="Món quà" autocomplete="off" enterkeyhint="done">
         <button type="button" class="btn soft sm" data-set="addreward">Thêm</button>
       </span>
@@ -348,12 +353,14 @@ function addNote(text) {
   refresh("gift");
 }
 function addReward() {
-  const kg = L.parseNum($("#rewardKg", sheet.el).value);
+  const n = L.parseNum($("#rewardKg", sheet.el).value);
   const text = $("#rewardText", sheet.el).value.trim();
-  if (kg === null || kg <= 0 || kg > 150) { toast("Nhập số kg giảm, ví dụ 2."); $("#rewardKg", sheet.el).focus(); return; }
+  const byDays = st.rk === "days";
+  if (byDays && (n === null || !Number.isInteger(n) || n < 1 || n > 365)) { toast("Nhập số ngày đạt mục tiêu, ví dụ 7."); $("#rewardKg", sheet.el).focus(); return; }
+  if (!byDays && (n === null || n <= 0 || n > 150)) { toast("Nhập số kg giảm, ví dụ 2."); $("#rewardKg", sheet.el).focus(); return; }
   if (!text) { toast("Nhập món quà."); $("#rewardText", sheet.el).focus(); return; }
-  if (S.settings.rewards.length >= 8) { toast("Tối đa 8 món quà."); return; }
-  setSettings({ rewards: [...S.settings.rewards, { kg, text }] });
+  if (S.settings.rewards.length >= 12) { toast("Tối đa 12 món quà."); return; }
+  setSettings({ rewards: [...S.settings.rewards, byDays ? { days: n, text } : { kg: n, text }] });
   refresh("gift");
 }
 /** Lưu khoá đang có trong ô, sau khi dọn (bỏ ngoặc kép, chữ thừa, dấu xuống dòng dính theo lúc dán); ô hiện lại đúng chuỗi đã lưu. */
@@ -449,6 +456,8 @@ async function onClick(e) {
     case "idea": addNote(b.dataset.text); break;
     case "delnote": setSettings({ notes: S.settings.notes.filter((_, k) => k !== Number(arg)) }); refresh("gift"); break;
     case "addreward": addReward(); break;
+    case "rewardkind": st.rk = arg === "days" ? "days" : "kg"; refresh("gift"); break;
+    case "showgifts": st.showGifts = !st.showGifts; refresh("gift"); break;
     case "rewardidea": { const t = $("#rewardText", sheet.el); t.value = b.dataset.text; const k = $("#rewardKg", sheet.el); (k.value.trim() ? t : k).focus(); break; }
     case "delreward": setSettings({ rewards: S.settings.rewards.filter((_, k) => k !== Number(arg)) }); refresh("gift"); break;
     case "theme": setSettings({ theme: arg }); refresh("look"); break;

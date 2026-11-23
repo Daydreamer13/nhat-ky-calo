@@ -49,6 +49,7 @@ export async function boot() {
   sawStore(); // nhớ dấu "kho vừa được ghi" TRƯỚC lần đọc đầu: bản khác ghi sau thời điểm này thì bản này biết mình đã cũ
   await load();
   replayUnsaved();
+  migrateGifts();
   noteDiary();
   S.ready = true;
   changed();
@@ -861,12 +862,17 @@ export function checkMoments({ silent = false, before = null } = {}) {
   for (const id of Object.keys(seen)) {
     if (!id.startsWith("ms:")) continue;
     const kg = Number(id.slice(3));
-    if (!(kg <= st.bestLost + 1e-9)) { delete seen[id]; dirty = true; }
+    if (!(kg <= st.bestLost + 1e-9)) { delete seen[id]; delete seen["gift:kg:" + kg]; dirty = true; } // mốc chưa thật sự đạt: hộp quà của mốc đó đóng lại
   }
   if (before) for (const id of L.WEIGHT_BADGES) if (S.meta.earned[id] && L.badgeHolds(id, before) && !L.badgeHolds(id, st)) { delete S.meta.earned[id]; dirty = true; }
   const freshMs = ms.filter((m) => mark(`ms:${m.kg}`));
-  for (const m of freshMs) if (m.isGoal) found.push({ rank: 0, type: "goal", kg: m.kg, reward: m.reward });
-  for (const m of freshMs) if (!m.isGoal && m.reward) found.push({ rank: 1, type: "reward", kg: m.kg, reward: m.reward });
+  for (const m of freshMs) if (m.isGoal) found.push({ rank: 0, type: "goal", kg: m.kg });
+  // Mốc có quà: hiện hộp quà còn đóng, người dùng tự bấm mở (kể cả quà ở đích — hiện ngay sau lời mừng về đích).
+  for (const m of freshMs) if (m.reward) found.push({ rank: 1, type: "reward", id: "kg:" + m.kg });
+  // Quà theo số ngày ăn đạt mục tiêu.
+  for (const g of L.giftList(S.profile, S.settings.rewards, st, seen)) {
+    if (g.kind === "days" && g.reached && mark("gd:" + g.days)) found.push({ rank: 1, type: "reward", id: g.id });
+  }
   const plain = freshMs.filter((m) => !m.isGoal && !m.reward).pop();
   if (plain) found.push({ rank: 4, type: "milestone", kg: plain.kg });
 
@@ -915,6 +921,31 @@ export function dismissRecap(key) {
 
 /** Các gợi ý chỉ hiện một lần (mời cài app, nhắc kết nối Claude…). */
 export const seen = (id) => !!S.meta.seen[id];
+/** Người dùng bấm mở một hộp quà đã chạm mốc: từ đây món quà hiện ra ở mọi nơi. */
+export function openGift(id) {
+  const g = S.profile ? L.giftList(S.profile, S.settings.rewards, stats(), S.meta.seen).find((x) => x.id === id) : null;
+  if (!g || !g.reached) return false;
+  markSeen("gift:" + id);
+  return true;
+}
+/** Hộp quà theo mã (để vẽ lời chúc mừng / tấm mở quà). */
+export const giftById = (id) => (S.profile ? L.giftList(S.profile, S.settings.rewards, stats(), S.meta.seen).find((x) => x.id === id) || null : null);
+/**
+ * Dữ liệu có từ trước khi có "hộp quà bí mật": những quà đã chạm mốc thì người dùng đã thấy rồi — coi như đã mở, không bắt mở lại
+ * (và không báo lại quà theo ngày). Chạy một lần cho mỗi bộ dữ liệu (dấu "gifts:v2").
+ */
+function migrateGifts() {
+  if (S.meta.seen["gifts:v2"]) return;
+  if (S.profile) {
+    for (const g of L.giftList(S.profile, S.settings.rewards, stats(), S.meta.seen)) {
+      if (!g.reached) continue;
+      S.meta.seen["gift:" + g.id] = S.today;
+      if (g.kind === "days") S.meta.seen["gd:" + g.days] = S.today;
+    }
+  }
+  S.meta.seen["gifts:v2"] = S.today;
+  if (S.profile) saveMeta();
+}
 export function markSeen(id) {
   if (S.meta.seen[id]) return;
   S.meta.seen[id] = S.today;
@@ -1040,6 +1071,7 @@ export async function importData(text) {
   clearUnsaved();
   sawStore();
   await load();
+  migrateGifts(); // file sao lưu từ bản cũ: quà đã chạm mốc coi như đã mở
   noteDiary();
   askedPersist = true;
   askPersist(); // tài khoản dựng từ file sao lưu không đi qua bước tạo hồ sơ: xin giữ dữ liệu lâu dài ở đây
@@ -1054,6 +1086,7 @@ export async function wipeAll() {
   clearUnsaved();
   sawStore();
   await load();
+  migrateGifts(); // bộ dữ liệu trống: đánh dấu luôn, để quà của hồ sơ mới không bị coi là "đã mở từ bản cũ"
   noteDiary();
   ctxCache = null;
   changed();

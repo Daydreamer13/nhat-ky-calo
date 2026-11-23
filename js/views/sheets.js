@@ -1,6 +1,6 @@
 // sheets.js — các tấm trượt: chi tiết bữa ăn (đang nhận diện / lỗi / kết quả), gõ tên món, ghi cân nặng, chúc mừng.
 
-import { S, ctx, on, findMeal, dayAt, updateMeal, deleteMeal, retryMeal, stopJob, jobOf, togglePin, isPinned, addTextMeal, addReadyMeal, logWeight, removeWeight, photoUrl, cachedPhoto, frequent } from "../state.js";
+import { S, ctx, on, openGift, giftById, findMeal, dayAt, updateMeal, deleteMeal, retryMeal, stopJob, jobOf, togglePin, isPinned, addTextMeal, addReadyMeal, logWeight, removeWeight, photoUrl, cachedPhoto, frequent } from "../state.js";
 import * as L from "../logic.js";
 import * as W from "../words.js";
 import { html, raw, $, $$, setHtml, openSheet, toast, dropToast, shareText, buzz, withFocus, sheetBusy } from "../ui.js";
@@ -820,13 +820,33 @@ function momentView(mo) {
     art = badgeArt("streak", true, 132, mo.n); eyebrow = "Chuỗi ngày"; title = `${mo.n} ngày liên tiếp`; text = W.streakCheer(mo.n);
     share = `${self} đã ghi nhật ký ăn uống ${mo.n} ngày liên tiếp!`;
   } else if (mo.type === "goal") {
-    art = giftArt(true, 148); eyebrow = "Về đích"; title = name ? `${name} làm được rồi!` : "Làm được rồi!";
-    text = `Đã chạm ${L.fmt1(S.profile.goalWeight)} kg. Từ giờ app chuyển sang mức ăn để giữ cân.` + (mo.reward ? ` Quà${partner ? " từ " + partner : ""}: ${mo.reward}.` : "");
+    art = badgeArt("goal", true, 132); eyebrow = "Về đích"; title = name ? `${name} làm được rồi!` : "Làm được rồi!";
+    text = `Đã chạm ${L.fmt1(S.profile.goalWeight)} kg. Từ giờ app chuyển sang mức ăn để giữ cân.`;
     share = `${self} đã về đích ${L.fmt1(S.profile.goalWeight)} kg rồi!`;
   } else if (mo.type === "reward") {
-    art = giftArt(true, 148); eyebrow = `Giảm ${L.fmt1(mo.kg).replace(",0", "")} kg`; title = "Mở quà thôi!";
-    text = `Quà${partner ? " từ " + partner : ""}: ${mo.reward}.`;
-    share = `${self} giảm được ${L.fmt1(mo.kg).replace(",0", "")} kg rồi, đến lúc nhận quà: ${mo.reward}!`;
+    // Hộp quà bí mật: tới mốc thì hộp hiện ra còn đóng, cô ấy tự bấm mới thấy bên trong là gì.
+    const g = giftById(mo.id);
+    if (!g || !g.reached) return null; // quà đã bị xoá hoặc mốc không còn đạt (sửa lại số cân)
+    const what = g.kind === "days" ? `${g.days} ngày đạt mục tiêu` : g.isGoal ? "Về đích" : `Giảm ${L.fmt1(g.kg).replace(",0", "")} kg`;
+    eyebrow = what;
+    if (!g.opened) {
+      return {
+        share: "", gift: g,
+        inner: html`<div class="cele-art cele-art--box">${raw(giftArt(false, 148))}</div>
+          <p class="cele-eyebrow">${eyebrow}</p>
+          <h2 class="cele-title">Có quà đang chờ!</h2>
+          <p class="cele-text">${partner ? W.cap(partner) + " đã để sẵn một hộp quà cho mốc này." : "Một hộp quà đã để sẵn cho mốc này."} Chạm để xem bên trong có gì nhé.</p>
+          <div class="cele-actions">
+            <button class="btn primary block" data-cele="open">Mở quà</button>
+            <button class="btn ghost block" data-close-sheet>Để lát nữa mở</button>
+          </div>`,
+      };
+    }
+    art = giftArt(true, 148); title = "Mở quà thôi!";
+    text = `Quà${partner ? " từ " + partner : ""}: ${g.text}.`;
+    share = g.kind === "days"
+      ? `${self} đã có ${g.days} ngày ăn đúng mục tiêu rồi, đến lúc nhận quà: ${g.text}!`
+      : `${self} giảm được ${L.fmt1(g.kg).replace(",0", "")} kg rồi, đến lúc nhận quà: ${g.text}!`;
   } else {
     art = badgeArt("lost", true, 132, mo.kg); eyebrow = "Mốc mới"; title = `Giảm ${L.fmt1(mo.kg).replace(",0", "")} kg`; text = "Từng chút một mà thành quãng đường dài.";
     share = `${self} giảm được ${L.fmt1(mo.kg).replace(",0", "")} kg rồi!`;
@@ -834,8 +854,7 @@ function momentView(mo) {
   const note = S.settings.notes.length ? W.pick(S.settings.notes, `${mo.type}${mo.id || mo.kg || mo.n || mo.stage}`) : null;
   return {
     share,
-    body: html`<div class="cele">
-      <div class="cele-art">${raw(art)}</div>
+    inner: html`<div class="cele-art">${raw(art)}</div>
       <p class="cele-eyebrow">${eyebrow}</p>
       <h2 class="cele-title">${title}</h2>
       <p class="cele-text">${text}</p>
@@ -843,23 +862,38 @@ function momentView(mo) {
       <div class="cele-actions">
         <button class="btn primary block" data-close-sheet>Tuyệt quá</button>
         <button class="btn ghost block" data-cele="share">${raw(icon("share"))}<span>Khoe với ${partner || "người thân"}</span></button>
-      </div>
-    </div>`,
+      </div>`,
   };
+}
+/** Mở tấm hộp quà từ danh sách ở màn Hành trình (quà đã tới mốc mà chưa mở, hoặc xem lại quà đã mở). */
+export function openGiftBox(id) {
+  queue.unshift({ type: "reward", id });
+  nextMoment();
 }
 function nextMoment() {
   if (celeOpen || !queue.length) return;
   if (ms || ws || tx) return; // tấm bữa ăn (đang xem/sửa kết quả), tấm cân nặng hoặc tấm gõ tên món đang mở: chờ tấm đóng rồi mới chúc mừng — onClose của tấm gọi lại hàm này
   if (sheetBusy()) { setTimeout(nextMoment, 120); return; } // một tấm khác đang đóng dở: mở ngay sẽ bị bước lùi đang chờ đóng nhầm
   const mo = queue.shift();
-  const v = momentView(mo);
+  let v = momentView(mo);
+  if (!v) { setTimeout(nextMoment, 0); return; }
   celeOpen = true;
   const sh = openSheet({
-    label: "Chúc mừng",
+    label: v.gift ? "Hộp quà" : "Chúc mừng",
     kind: "center",
-    body: v.body,
+    body: html`<div class="cele">${v.inner}</div>`,
     onMount(el) {
       el.addEventListener("click", async (e) => {
+        if (e.target.closest('[data-cele="open"]')) {
+          // Bấm mở hộp: ghi nhận đã mở rồi thay nội dung tấm bằng món quà bên trong.
+          if (!openGift(mo.id)) { sh.close(); return; }
+          const opened = momentView(mo);
+          if (!opened) { sh.close(); return; }
+          v = opened;
+          withFocus(el, () => setHtml($(".cele", el), v.inner));
+          confetti({ colors: themeColors() }); buzz(18);
+          return;
+        }
         if (!e.target.closest('[data-cele="share"]')) return;
         const r = await shareText(v.share);
         if (r === "copied") toast("Đã chép lời khoe. Dán vào tin nhắn để gửi nhé.");
