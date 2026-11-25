@@ -424,3 +424,7 @@ body.is-reading-photo::after { content: "Đang đọc ảnh…"; position: fixed
 .cele-art--box svg { animation: box-nudge 2.2s ease-in-out infinite; transform-origin: 50% 80%; }
 @keyframes box-nudge { 0%, 70%, 100% { transform: none; } 78% { transform: rotate(-5deg); } 86% { transform: rotate(5deg); } 94% { transform: rotate(-2deg); } }
 @media (prefers-reduced-motion: reduce) { .cele-art--box svg { animation: none; } }
+
+/* --- tấm ghi buổi tập --------------------------------------------------------- */
+.tag[aria-pressed="true"] { background: var(--leaf-strong); color: var(--on-leaf); box-shadow: none; }
+.xs-est { margin-top: -4px; text-align: center; font: 700 var(--fs-lg)/1.2 var(--font-display); color: var(--leaf-ink); }

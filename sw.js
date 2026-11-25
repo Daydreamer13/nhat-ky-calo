@@ -1,7 +1,7 @@
 /* Service Worker — Nhật Ký Calo
    Vỏ app được lưu sẵn để mở tức thì và chạy cả khi mất mạng.
    Mỗi lần phát hành: tăng VERSION → máy tự tải bản mới ở lần mở kế tiếp. */
-const VERSION = "1.3.0";
+const VERSION = "1.4.0";
 const CACHE = `nkc-${VERSION}`;
 
 const SHELL = [
@@ -31,6 +31,7 @@ const SHELL = [
   "js/logic.js",
   "js/models.js",
   "js/dishes.js",
+  "js/exercises.js",
   "js/words.js",
   "js/store.js",
   "js/photo.js",

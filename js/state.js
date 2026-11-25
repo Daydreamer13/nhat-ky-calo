@@ -3,6 +3,7 @@
 
 import * as L from "./logic.js";
 import { STREAK_MARKS } from "./words.js";
+import { EXERCISES } from "./exercises.js";
 import { openStore, askPersist, isQuotaError, markDiary } from "./store.js";
 import { prepareImage } from "./photo.js";
 import { analyzeMeal, reviewDay as askReview, aiErrorText, AiError } from "./ai.js";
@@ -206,7 +207,7 @@ function persistDay(key) {
   wantPersist();
   const day = S.days[key];
   const c = ctx();
-  if (day && !day.meals.length && day.weight == null && !day.water) {
+  if (day && !day.meals.length && day.weight == null && !day.water && !(day.ex && day.ex.length)) {
     delete S.days[key];
     return keep("days", key, store.putDay(key, null));
   }
@@ -388,6 +389,42 @@ export function setWater(key, n) {
   persistDay(key);
   changed();
   checkMoments();
+}
+/* ---------------- vận động ---------------- */
+/** Ghi một buổi vận động vào ngày key. Số kcal chốt lúc ghi theo cân nặng hiện tại; mục tiêu ăn không đổi. */
+export function addExercise(key, { a, min }) {
+  const act = EXERCISES.find((x) => x.id === a), c = ctx();
+  const m = Math.round(Number(min));
+  if (!act || !c || !L.isKey(key) || key > S.today || !(m >= 1 && m <= 600)) return null;
+  const day = ensureDay(key);
+  if ((day.ex || []).length >= 20) { toast("Một ngày ghi tối đa 20 buổi tập."); return null; }
+  const ex = { id: L.uid(), a: act.id, n: act.n, min: m, k: L.burnKcal(act.met, c.weight, m) };
+  day.ex = [...(day.ex || []), ex];
+  persistDay(key);
+  changed();
+  return { key, ex };
+}
+/** Xoá một buổi vận động và trả về hàm hoàn tác (null nếu không có buổi đó). */
+export function removeExercise(key, id) {
+  const day = S.days[key];
+  const at = day && Array.isArray(day.ex) ? day.ex.findIndex((x) => x.id === id) : -1;
+  if (at < 0) return null;
+  const ex = day.ex[at];
+  const { tg, td } = day; // xoá buổi tập duy nhất của một ngày trống thì cả ngày bị gỡ: nhớ mức kcal để hoàn tác trả lại
+  day.ex = day.ex.filter((x) => x.id !== id);
+  if (!day.ex.length) delete day.ex;
+  persistDay(key);
+  changed();
+  return () => {
+    const d = ensureDay(key);
+    if ((d.ex || []).some((x) => x.id === id)) return;
+    if (key !== S.today && tg && !d.tg) { d.tg = tg; if (td) d.td = td; }
+    const list = [...(d.ex || [])];
+    list.splice(Math.min(at, list.length), 0, ex);
+    d.ex = list;
+    persistDay(key);
+    changed();
+  };
 }
 let removedWeight = null; // lần cân vừa xoá gần nhất: { key, weight, tg, td, stamps } — để "Hoàn tác" trả lại y nguyên
 /** @returns {{ok:boolean, error?:string, prev?:number|null}} */

@@ -372,6 +372,23 @@ function weekBars(j, todayKey) {
   </section>`;
 }
 
+/* ---------------- vận động tuần này ---------------- */
+function moveWeek(j) {
+  const w = j.move.week, t = j.move.total;
+  if (!t.sessions) return ""; // chưa ghi buổi tập nào: không chen thêm một ô trống (lời mời ghi nằm ở màn Hôm nay)
+  const spoken = w.list.map((d) => `${d.label}: ${d.count ? d.min + " phút" : d.isFuture ? "chưa tới" : "không tập"}`).join("; ");
+  return html`<section class="plain" aria-label="Vận động tuần này">
+    <header class="section-head">
+      <h2 class="section-title">Vận động tuần này</h2>
+      <p class="section-meta">${w.sessions ? html`<b>${w.sessions} buổi</b> · ${L.fmtInt(w.min)}&nbsp;phút` : "Chưa có buổi nào"}</p>
+    </header>
+    <div class="move-week" role="img" aria-label="Số phút vận động từng ngày. ${spoken}.">
+      ${w.list.map((d) => html`<span class="${d.count ? "is-on" : ""} ${d.isToday ? "is-today" : ""} ${d.isFuture ? "is-future" : ""}"><i>${d.count ? L.fmtInt(d.min) : ""}</i><b>${d.label}</b></span>`)}
+    </div>
+    <p class="fine">${w.sessions ? html`Tuần này đã đốt khoảng ${L.fmtInt(w.kcal)}&nbsp;kcal. ` : ""}Từ lúc bắt đầu: ${L.fmtInt(t.sessions)} buổi, ${L.fmtInt(t.min)}&nbsp;phút.</p>
+  </section>`;
+}
+
 /* ---------------- chuỗi ngày + lịch tháng ---------------- */
 function streakAndMonth(j, todayKey, todayLogged) {
   const st = j.streak, mo = j.month;
@@ -541,6 +558,7 @@ export function viewJourney() {
     ${weightPanel(j, todayKey)}
     ${gifts(j)}
     ${weekBars(j, todayKey)}
+    ${moveWeek(j)}
     ${streakAndMonth(j, todayKey, todayLogged)}
     ${bank(j)}
     ${badges(j)}`;

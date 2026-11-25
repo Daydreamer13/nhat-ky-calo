@@ -267,6 +267,74 @@ export function dayTotals(day) {
 }
 export const hasLog = (day) => !!(day && day.meals && day.meals.length);
 
+/* ------------------------------------------------------------------ *
+ * Vận động: day.ex = [{ id, a, n, min, k }]
+ * a: mã hoạt động (js/exercises.js), n: tên lúc ghi, min: số phút, k: kcal ước tính chốt lúc ghi.
+ * Số kcal đã đốt chỉ hiện riêng, không bao giờ cộng vào mục tiêu ăn; ngày chỉ có buổi tập không phải "ngày có ghi bữa".
+ * ------------------------------------------------------------------ */
+export const burnKcal = (met, kg, min) => Math.max(0, Math.round(num(met) * num(kg) * (num(min) / 60)));
+export function cleanExercise(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const min = Math.round(num(raw.min));
+  const n = typeof raw.n === "string" ? raw.n.trim().slice(0, 60) : "";
+  if (!n || min < 1 || min > 600) return null;
+  // mã buổi tập đi qua data-act="ex-del:<mã>" nên chỉ nhận chữ, số, gạch
+  const rid = typeof raw.id === "string" || typeof raw.id === "number" ? String(raw.id) : "";
+  return {
+    id: /^[\w-]{1,40}$/.test(rid) ? rid : uid(),
+    a: typeof raw.a === "string" && /^[\w-]{1,24}$/.test(raw.a) ? raw.a : "khac",
+    n, min, k: clamp(Math.round(num(raw.k)), 0, 5000),
+  };
+}
+const exOf = (day) => (day && Array.isArray(day.ex) ? day.ex : []);
+export function dayBurn(day) {
+  const list = exOf(day);
+  return { count: list.length, min: list.reduce((a, x) => a + num(x.min), 0), kcal: list.reduce((a, x) => a + num(x.k), 0) };
+}
+/** Bảy ngày của tuần chứa todayKey: mỗi ngày tập bao nhiêu phút, và tổng cả tuần. */
+export function exerciseWeek(days, todayKey) {
+  const list = weekKeys(todayKey).map((k, i) => ({ k, label: WEEKDAY_SHORT[i], isToday: k === todayKey, isFuture: k > todayKey, ...dayBurn(days[k]) }));
+  const sum = (f) => list.reduce((a, d) => a + d[f], 0);
+  return { list, sessions: sum("count"), min: sum("min"), kcal: sum("kcal"), activeDays: list.filter((d) => d.count > 0).length };
+}
+export function exerciseTotals(days) {
+  const t = { sessions: 0, min: 0, kcal: 0, days: 0 };
+  for (const k of Object.keys(days || {})) {
+    if (!isKey(k)) continue;
+    const b = dayBurn(days[k]);
+    if (!b.count) continue;
+    t.sessions += b.count; t.min += b.min; t.kcal += b.kcal; t.days++;
+  }
+  return t;
+}
+const MOVE_BURN = ["di-bo-nhanh", "dap-xe", "nhay", "aerobic", "chay-cham", "viec-nha", "cau-thang", "tai-nha"];
+const MOVE_EASY = [["di-bo-nhanh", 30], ["yoga", 30], ["tai-nha", 20], ["dap-xe", 30], ["nhay", 20], ["viec-nha", 30], ["di-bo", 40], ["cau-thang", 10]];
+/**
+ * Gợi ý vận động. Đang ăn vượt mục tiêu (over > 0) mà chưa tập đủ bù: mỗi gợi ý là số phút cần để đốt phần còn vượt
+ * (tối đa 60 phút — vượt nhiều quá thì chỉ bù được một phần, partial = true). Không vượt: vài buổi vừa sức.
+ * Hàm thuần: seed đổi theo ngày để mỗi ngày một bộ gợi ý khác.
+ * @returns {{mode:'burn'|'move', need:number, partial:boolean, items:{id:string,n:string,min:number,kcal:number}[]}|null}
+ */
+export function moveIdeas({ exercises, kg, over = 0, burned = 0, seed = "", limit = 3 }) {
+  const byId = new Map((exercises || []).map((x) => [x.id, x]));
+  const w = num(kg);
+  if (!byId.size || !(w > 0)) return null;
+  const need = Math.max(0, Math.round(num(over) - num(burned)));
+  const rot = (list) => { const s = Math.floor(hash01(String(seed)) * list.length); return list.map((_, i) => list[(i + s) % list.length]); };
+  if (need >= 20) {
+    let partial = false;
+    const items = rot(MOVE_BURN).map((id) => byId.get(id)).filter(Boolean).slice(0, limit).map((x) => {
+      const exact = Math.ceil(need / ((x.met * w) / 60) / 5) * 5;
+      const min = clamp(exact, 10, 60);
+      if (exact > 60) partial = true;
+      return { id: x.id, n: x.n, min, kcal: burnKcal(x.met, w, min) };
+    });
+    return { mode: "burn", need, over: Math.round(num(over)), burned: Math.round(num(burned)), partial, items };
+  }
+  const items = rot(MOVE_EASY).filter(([id]) => byId.has(id)).slice(0, limit).map(([id, min]) => { const x = byId.get(id); return { id, n: x.n, min, kcal: burnKcal(x.met, w, min) }; });
+  return { mode: "move", need: 0, partial: false, items };
+}
+
 /** Khoảng dung sai: ảnh chụp chỉ ước tính được, nên vượt dưới 5% vẫn tính là đạt. */
 export const OVER_TOLERANCE = 1.05;
 /**
@@ -572,7 +640,7 @@ export const normName = (s) => String(s ?? "").trim().toLowerCase().replace(/\s+
  * Thói quen ăn uống và bản tóm tắt gửi Claude
  * ------------------------------------------------------------------ */
 /** Dấu vết của các bữa trong ngày: đổi khi thêm, bớt hay sửa bữa — để biết lời nhận xét đã cũ. */
-export const reviewSig = (day) => { const t = dayTotals(day); return t.count + ":" + t.kcal; };
+export const reviewSig = (day) => { const t = dayTotals(day), b = dayBurn(day); return t.count + ":" + t.kcal + (b.count ? ":" + b.count + "x" + b.kcal : ""); };
 
 /**
  * Thói quen rút từ nhật ký mấy tuần gần đây (không tính ngày đang xét): ăn bao nhiêu, bữa nào nặng, món nào hay lặp lại.
@@ -643,6 +711,13 @@ export function daySummary({ days, key, todayKey, target, you = "bạn", hour = 
     : `Ngày: ${longDate(key)} (đã qua)`);
   lines.push(`Mục tiêu trong ngày: ${Math.round(target)} kcal. Đã ghi: ${t.kcal} kcal (${Math.round((t.kcal / Math.max(1, target)) * 100)}% mục tiêu); đạm ${Math.round(t.p)} g, bột ${Math.round(t.c)} g, béo ${Math.round(t.f)} g.`);
   if (waterGoal) lines.push(`Nước: ${day.water || 0}/${waterGoal} ly.`);
+  const burn = dayBurn(day);
+  lines.push(burn.count
+    ? `Vận động: ${exOf(day).slice(0, 10).map((x) => `${String(x.n).slice(0, 60)} ${x.min} phút (khoảng ${x.k} kcal)`).join("; ")}. Tổng đã đốt khoảng ${burn.kcal} kcal (ước tính; không cộng vào mục tiêu ăn).`
+    : "Vận động: chưa ghi buổi nào.");
+  let exDays = 0, exMin = 0;
+  for (let i = 1; i <= 7; i++) { const b = dayBurn(days[addDays(key, -i)]); if (b.count) { exDays++; exMin += b.min; } }
+  lines.push(`Bảy ngày trước đó: ${exDays} ngày có vận động, tổng ${exMin} phút.`);
   lines.push("Các bữa đã ghi:");
   for (const type of MEAL_TYPES) {
     for (const m of done.filter((x) => x.type === type.id)) {
@@ -852,7 +927,11 @@ export function cleanDay(raw) {
   if (num(raw.td) >= 800 && num(raw.td) <= 8000) day.td = Math.round(num(raw.td));
   const rv = day.meals.length ? cleanReview(raw.rv) : null;
   if (rv) day.rv = rv;
-  return day.meals.length || day.weight != null || day.water ? day : null;
+  const ex = (Array.isArray(raw.ex) ? raw.ex : []).map(cleanExercise).filter(Boolean).slice(0, 20);
+  const exIds = new Set();
+  for (const x of ex) { while (exIds.has(x.id)) x.id = uid(); exIds.add(x.id); }
+  if (ex.length) day.ex = ex;
+  return day.meals.length || day.weight != null || day.water || ex.length ? day : null;
 }
 /** Khoá Claude hợp lệ về hình thức ("sk-ant-…"); không kiểm tra được đúng sai ở đây. */
 export const looksLikeApiKey = (s) => typeof s === "string" && /^sk-ant-[A-Za-z0-9_-]{16,280}$/.test(s.trim());

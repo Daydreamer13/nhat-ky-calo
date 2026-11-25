@@ -1,8 +1,9 @@
 // sheets.js — các tấm trượt: chi tiết bữa ăn (đang nhận diện / lỗi / kết quả), gõ tên món, ghi cân nặng, chúc mừng.
 
-import { S, ctx, on, openGift, giftById, findMeal, dayAt, updateMeal, deleteMeal, retryMeal, stopJob, jobOf, togglePin, isPinned, addTextMeal, addReadyMeal, logWeight, removeWeight, photoUrl, cachedPhoto, frequent } from "../state.js";
+import { S, ctx, on, openGift, giftById, findMeal, dayAt, updateMeal, deleteMeal, retryMeal, stopJob, jobOf, togglePin, isPinned, addTextMeal, addReadyMeal, logWeight, removeWeight, addExercise, removeExercise, photoUrl, cachedPhoto, frequent } from "../state.js";
 import * as L from "../logic.js";
 import * as W from "../words.js";
+import { EXERCISES } from "../exercises.js";
 import { html, raw, $, $$, setHtml, openSheet, toast, dropToast, shareText, buzz, withFocus, sheetBusy } from "../ui.js";
 import { icon, plantSvg, badgeArt, giftArt, scanArt } from "../art.js";
 import { aiErrorText } from "../ai.js";
@@ -608,6 +609,78 @@ export function openTextAdd(type = null) {
     onClose() {
       tx = null;
       setTimeout(nextMoment, 350); // lời chúc mừng không chen ngang lúc đang gõ; nếu tấm bữa ăn mở tiếp (Tính calo) thì nó chờ tiếp tấm đó
+    },
+  });
+}
+
+/* ================================================================== *
+ * Ghi buổi tập
+ * ================================================================== */
+let xs = null;
+/** @param {string} [pre] mã hoạt động chọn sẵn (từ một gợi ý)  @param {number} [preMin] số phút điền sẵn */
+export function openExercise(pre = "", preMin = 0) {
+  if (xs) return;
+  const key = S.viewDay; // ghi vào ngày đang xem (hôm nay hoặc một ngày cũ)
+  const kg = ctx().weight;
+  let a = EXERCISES.some((x) => x.id === pre) ? pre : "di-bo-nhanh";
+  let min = preMin >= 1 && preMin <= 600 ? Math.round(preMin) : 30;
+  const actOf = () => EXERCISES.find((x) => x.id === a);
+  const estText = (m) => (m >= 1 && m <= 600 ? `Khoảng ${L.fmtInt(L.burnKcal(actOf().met, kg, m))} kcal` : "Nhập số phút từ 1 đến 600");
+  const body = html`
+    <header class="sheet-head"><h2 class="sheet-title">Ghi buổi tập</h2><button class="icon-btn" data-close-sheet aria-label="Đóng">${raw(icon("x"))}</button></header>
+    <div class="sheet-body stack">
+      <div class="field"><span class="field-label">${cap(you())} vừa vận động gì?</span>
+        <div class="tags" role="group" aria-label="Hoạt động">${EXERCISES.map((x) => html`<button type="button" class="tag" data-xs="act:${x.id}" aria-pressed="${P(x.id === a)}">${x.n}</button>`)}</div>
+      </div>
+      <div class="ws-num">
+        <button type="button" class="icon-btn" data-xs="-5" aria-label="Bớt 5 phút">${raw(icon("minus"))}</button>
+        <label class="ws-val"><input id="xsMin" class="num" type="text" inputmode="numeric" maxlength="3" value="${min}" aria-label="Số phút" aria-describedby="xsEst" enterkeyhint="done"><span>phút</span></label>
+        <button type="button" class="icon-btn" data-xs="5" aria-label="Thêm 5 phút">${raw(icon("plus"))}</button>
+      </div>
+      <p class="xs-est" id="xsEst" role="status">${estText(min)}</p>
+      <button class="btn primary block" data-xs="save">Ghi buổi tập</button>
+      <p class="fine center">Ước tính theo cân nặng ${L.fmt1(kg)} kg, có thể lệch 20–30%. Số này chỉ để theo dõi, không cộng vào phần được ăn.</p>
+    </div>`;
+  xs = openSheet({
+    label: "Ghi buổi tập",
+    body,
+    onMount(el) {
+      const input = $("#xsMin", el), est = $("#xsEst", el);
+      const read = () => { const v = L.parseKcal(input.value); return v === null ? NaN : Math.round(v); };
+      const paint = () => { est.textContent = estText(read()); };
+      el.addEventListener("input", (e) => { if (e.target === input) paint(); });
+      el.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target === input) { e.preventDefault(); $('[data-xs="save"]', el).click(); } });
+      el.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-xs]");
+        if (!b) return;
+        const act = b.dataset.xs;
+        if (act.startsWith("act:")) {
+          a = act.slice(4);
+          for (const t of $$("[data-xs^='act:']", el)) t.setAttribute("aria-pressed", P(t === b));
+          paint(); buzz(4);
+          return;
+        }
+        if (act === "save") {
+          const m = read();
+          if (!(m >= 1 && m <= 600)) { paint(); input.focus(); return; }
+          const r = addExercise(key, { a, min: m });
+          if (!r) return;
+          xs.close();
+          buzz(10);
+          toast(`Đã ghi ${r.ex.n} ${L.fmtInt(r.ex.min)} phút · khoảng ${L.fmtInt(r.ex.k)} kcal.`, { label: "Hoàn tác", fn: () => removeExercise(r.key, r.ex.id) });
+          return;
+        }
+        const d = Number(act);
+        if (!Number.isFinite(d)) return;
+        const cur = read();
+        const next = L.clamp((Number.isFinite(cur) ? cur : min) + d, 5, 600);
+        input.value = String(next);
+        paint(); buzz(4);
+      });
+    },
+    onClose() {
+      xs = null;
+      setTimeout(nextMoment, 350);
     },
   });
 }

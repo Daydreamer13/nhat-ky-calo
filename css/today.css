@@ -235,3 +235,7 @@
 .review__kcal { flex: none; display: flex; flex-direction: column; align-items: flex-end; font-size: var(--fs-xs); font-weight: 700; color: var(--ink-2); line-height: 1.15; }
 .review__kcal b { font: 700 var(--fs-base)/1.1 var(--font-display); color: var(--ink); }
 .sug-more[disabled] { opacity: .6; }
+
+/* --- vận động: buổi đã ghi và gợi ý ------------------------------------------- */
+.move__lead { font-size: var(--fs-sm); font-weight: 700; color: var(--ink-2); line-height: 1.4; }
+.move__list .list-row { background: var(--surface); box-shadow: var(--shadow-soft); }

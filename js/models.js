@@ -4,6 +4,7 @@
 import * as L from "./logic.js";
 import * as W from "./words.js";
 import { DISHES } from "./dishes.js";
+import { EXERCISES } from "./exercises.js";
 
 /** Trạng thái một ô ngày trên dải tuần / lịch tháng. */
 function cellStatus(days, k, c) {
@@ -97,8 +98,17 @@ export function todayModel(S, c, o) {
       })
     : null;
 
+  // vận động: các buổi đã ghi, và gợi ý (chỉ hôm nay; đã tập rồi mà không còn vượt mức thì thôi gợi ý)
+  const burn = L.dayBurn(day);
+  const overBy = over ? totals.kcal - target : 0;
+  const move = {
+    ...burn,
+    list: (day.ex || []).map((x) => ({ id: x.id, n: x.n, min: x.min, k: x.k })),
+    ideas: isToday && (burn.count === 0 || overBy - burn.kcal >= 20) ? L.moveIdeas({ exercises: EXERCISES, kg: c.weight, over: overBy, burned: burn.kcal, seed: key }) : null,
+  };
+
   return {
-    key, isToday, pastStatus,
+    key, isToday, pastStatus, move,
     greeting: W.greeting(o.hour, S.profile.name),
     dateLabel: L.longDate(key),
     dayTitle: isToday ? "hôm nay" : L.diffDays(key, c.todayKey) === 1 ? "hôm qua" : L.shortDate(key),
@@ -190,6 +200,7 @@ export function journeyModel(S, c, stats, o = {}) {
     chart,
     plant,
     week,
+    move: { week: L.exerciseWeek(S.days, c.todayKey), total: L.exerciseTotals(S.days) },
     streak: { current: stats.streak, best: stats.best },
     month,
     bank: { kcal: stats.bank, kg: stats.bankKg, nextKg, toNext: Math.max(0, nextKg * L.KCAL_PER_KG - stats.bank), pct: stats.bankKg - Math.floor(stats.bankKg) },

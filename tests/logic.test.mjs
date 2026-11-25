@@ -1306,3 +1306,64 @@ test("hộp quà: quà theo kg và theo ngày đạt, chỉ mở khi đã tới 
   assert.equal(g[3].opened, false, "dấu đã mở không có nghĩa khi chưa tới mốc");
   assert.deepEqual(L.giftList(profile, [], { bestLost: 9, okDays: 99 }, {}), []);
 });
+
+/* ---------------- vận động ---------------- */
+const EX = [{ id: "di-bo-nhanh", n: "Đi bộ nhanh", met: 4.3 }, { id: "dap-xe", n: "Đạp xe thong thả", met: 4 }, { id: "nhay", n: "Nhảy", met: 5 }, { id: "yoga", n: "Yoga", met: 2.5 }, { id: "tai-nha", n: "Tập tại nhà", met: 3.8 }, { id: "viec-nha", n: "Việc nhà", met: 3.3 }];
+test("vận động: kcal đốt = MET × kg × giờ", () => {
+  assert.equal(L.burnKcal(4.3, 60, 30), 129);
+  assert.equal(L.burnKcal(4.3, 60, 0), 0);
+  assert.equal(L.burnKcal("x", 60, 30), 0);
+});
+test("vận động: ngày chỉ có buổi tập vẫn được giữ, nhưng không tính là ngày có ghi bữa", () => {
+  const d = L.cleanDay({ meals: [], ex: [{ id: "a1", a: "yoga", n: "Yoga", min: 30, k: 75 }, { id: "a1", a: "<x>", n: "Lạ", min: 20, k: 99999 }, { n: "", min: 5 }, { n: "Quá dài", min: 9000 }] });
+  assert.equal(d.ex.length, 2);
+  assert.notEqual(d.ex[0].id, d.ex[1].id);
+  assert.equal(d.ex[1].a, "khac");
+  assert.equal(d.ex[1].k, 5000);
+  assert.equal(L.hasLog(d), false);
+  assert.deepEqual(L.dayBurn(d), { count: 2, min: 50, kcal: 5075 });
+  assert.equal(L.cleanDay({ meals: [], ex: [{ n: "", min: 5 }] }), null);
+  assert.equal(L.dayStatus(d, 1500), "none");
+});
+test("vận động: không làm đổi số kcal đã ăn, mục tiêu hay ngày đạt", () => {
+  const plain = dayOf(700, 700), withEx = { ...dayOf(700, 700), ex: [{ id: "e", a: "chay", n: "Chạy", min: 60, k: 600 }] };
+  assert.deepEqual(L.dayTotals(withEx), L.dayTotals(plain));
+  assert.equal(L.dayStatus(withEx, 1500), L.dayStatus(plain, 1500));
+  const ctx = { todayKey: "2026-11-10", target: 1500, tdee: 1900, waterGoal: 0 };
+  const a = L.journeyStats({ "2026-11-09": plain }, ctx), b = L.journeyStats({ "2026-11-09": withEx }, ctx);
+  assert.equal(a.bank, b.bank);
+  assert.equal(a.okDays, b.okDays);
+});
+test("vận động: gợi ý bù phần vượt, và gợi ý vừa sức khi không vượt", () => {
+  const burn = L.moveIdeas({ exercises: EX, kg: 60, over: 200, burned: 0, seed: "2026-11-10" });
+  assert.equal(burn.mode, "burn");
+  assert.equal(burn.need, 200);
+  assert.equal(burn.items.length, 3);
+  for (const x of burn.items) { assert.ok(x.min % 5 === 0 && x.min >= 10 && x.min <= 60); assert.ok(x.kcal >= 200 || burn.partial); }
+  const big = L.moveIdeas({ exercises: EX, kg: 60, over: 900, burned: 0, seed: "s" });
+  assert.equal(big.partial, true);
+  assert.ok(big.items.every((x) => x.min === 60));
+  const done = L.moveIdeas({ exercises: EX, kg: 60, over: 200, burned: 190, seed: "s" });
+  assert.equal(done.mode, "move");
+  assert.deepEqual(L.moveIdeas({ exercises: EX, kg: 60, seed: "a" }), L.moveIdeas({ exercises: EX, kg: 60, seed: "a" }));
+  assert.equal(L.moveIdeas({ exercises: [], kg: 60 }), null);
+});
+test("vận động: tuần này, tổng cộng, dấu nhận xét và bản tóm tắt gửi Claude", () => {
+  const days = {
+    "2026-11-09": { ...dayOf(500), ex: [{ id: "a", a: "yoga", n: "Yoga", min: 30, k: 75 }] },
+    "2026-11-11": { meals: [], ex: [{ id: "b", a: "nhay", n: "Nhảy", min: 20, k: 100 }, { id: "c", a: "nhay", n: "Nhảy", min: 10, k: 50 }] },
+    "2026-11-01": { meals: [], ex: [{ id: "d", a: "yoga", n: "Yoga", min: 40, k: 100 }] },
+  };
+  const w = L.exerciseWeek(days, "2026-11-11");
+  assert.equal(w.sessions, 3);
+  assert.equal(w.min, 60);
+  assert.equal(w.kcal, 225);
+  assert.equal(w.activeDays, 2);
+  assert.deepEqual(L.exerciseTotals(days), { sessions: 4, min: 100, kcal: 325, days: 3 });
+  assert.equal(L.reviewSig(dayOf(500)), "1:500");
+  assert.equal(L.reviewSig(days["2026-11-09"]), "1:500:1x75");
+  const s = L.daySummary({ days, key: "2026-11-09", todayKey: "2026-11-11", target: 1500 });
+  assert.match(s, /Vận động: Yoga 30 phút \(khoảng 75 kcal\)/);
+  assert.match(s, /không cộng vào mục tiêu ăn/);
+  assert.match(L.daySummary({ days: { "2026-11-12": dayOf(500), ...days }, key: "2026-11-12", todayKey: "2026-11-12", target: 1500 }), /Vận động: chưa ghi buổi nào\.\nBảy ngày trước đó: 2 ngày có vận động, tổng 60 phút\./);
+});

@@ -140,6 +140,10 @@ Các mục đáng thiết lập trong **Lời nhắn và quà**:
   Cuối ngày bấm **Nhận xét hôm nay** để Claude nhìn lại cả ngày, nói nên thêm bớt gì và gợi ý ba bữa cho ngày mai,
   dựa trên các bữa đã ghi mấy tuần gần đây. Mỗi lần bấm là một lượt gọi Claude (chỉ gửi chữ, rẻ hơn một ảnh).
 - **Gõ tên món**: khi không tiện chụp.
+- **Vận động**: ở màn Hôm nay bấm **Ghi buổi tập**, chọn hoạt động và số phút; app ước tính số calo đã đốt theo
+  cân nặng hiện tại (không gọi Claude). Số này chỉ hiện riêng, **không cộng vào phần được ăn**: ước tính calo đốt
+  thường cao hơn thực tế, cho ăn bù thì dễ ăn lố. Khi ăn vượt mức, app gợi ý tập gì, bao nhiêu phút để bù. Màn Hành
+  trình có ô “Vận động tuần này”, và nhận xét cuối ngày của Claude tính cả việc tập.
 - **Ly nước**: chạm để đếm ly.
 - **Hành trình**: ghi cân nặng (mỗi tuần một lần là đủ), xem cây hoa, chuỗi ngày, huy hiệu, quà. Gõ nhầm số
   cân thì xoá được ngay trong danh sách "Các lần cân gần đây".

@@ -155,3 +155,13 @@ button.cal__d.is-now:focus-visible > span { outline-color: var(--ink); outline-o
 .gift__open { flex: none; white-space: nowrap; }
 @keyframes gift-nudge { 0%, 78%, 100% { transform: none; } 84% { transform: rotate(-6deg) scale(1.04); } 90% { transform: rotate(6deg) scale(1.04); } 96% { transform: rotate(-3deg); } }
 @media (prefers-reduced-motion: reduce) { .gift.is-ready .gift__art { animation: none; } }
+
+/* --- vận động tuần này: bảy ô, ô có tập thì tô màu và ghi số phút ------------- */
+.move-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.move-week span { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.move-week i { display: grid; place-items: center; width: 100%; max-width: 44px; aspect-ratio: 1; border-radius: 50%; background: var(--surface-2); font: 700 var(--fs-sm)/1 var(--font-display); font-style: normal; color: var(--on-leaf); }
+.move-week span:not(.is-on) i { background: transparent; box-shadow: inset 0 0 0 1.5px var(--leaf-soft); }
+.move-week .is-on i { background: var(--leaf-strong); }
+.move-week .is-today i { box-shadow: inset 0 0 0 2px var(--leaf); }
+.move-week .is-future i { opacity: .5; }
+.move-week b { font-size: var(--fs-xs); font-weight: 800; color: var(--ink-2); }

@@ -326,6 +326,37 @@ function suggest(m) {
   </section>`;
 }
 
+/* ---------------- vận động ---------------- */
+function move(m) {
+  const v = m.move, ideas = v.ideas;
+  const lead = !ideas ? ""
+    : ideas.mode === "burn"
+      ? `Đang vượt mức ${L.fmtInt(ideas.over)} kcal${ideas.burned > 0 ? `, đã đốt ${L.fmtInt(ideas.burned)}` : ""}. Vận động thêm thế này là bù ${ideas.burned > 0 ? "nốt" : "được"}${ideas.partial ? " một phần" : ""}:`
+      : `Hôm nay ${m.you} vận động gì nhỉ?`;
+  return html`<section class="usual move" aria-label="Vận động ${m.dayTitle}">
+    <header class="section-head">
+      <h2 class="section-title">Vận động ${m.dayTitle}</h2>
+      <p class="section-meta">${v.count ? html`đã đốt <b class="nowrap">${L.fmtInt(v.kcal)} kcal</b>` : "Chưa ghi buổi nào"}</p>
+    </header>
+    ${v.count ? html`<ul class="list move__list">${v.list.map((x) => html`<li class="list-row">
+      <span class="grow">${x.n} · ${L.fmtInt(x.min)} phút</span><b>${L.fmtInt(x.k)} kcal</b>
+      <button type="button" class="btn ghost sm danger" data-act="ex-del:${x.id}" aria-label="Xoá buổi ${x.n}">Xoá</button>
+    </li>`)}</ul>` : ""}
+    ${ideas ? html`<p class="move__lead">${lead}</p>
+    <div class="sugs">
+      ${ideas.items.map((x) => html`<button class="fav sug" data-act="ex-add:${x.id}:${x.min}" aria-label="Ghi ${x.n} ${x.min} phút, khoảng ${L.fmtInt(x.kcal)} kcal">
+        <span class="chip__plus">${ico("i-plus", "icon--sm")}</span>
+        <span class="fav__body"><span class="fav__name">${x.n}</span><span class="sug__q">${x.min} phút</span></span>
+        <span class="sug__kcal"><b>${L.fmtInt(x.kcal)}</b>kcal</span>
+      </button>`)}
+    </div>` : ""}
+    <div class="sug-foot">
+      <p class="fine">Số kcal đã đốt là ước tính, không cộng vào phần được ăn.</p>
+      <button class="sug-more" data-act="ex-add">Ghi buổi tập</button>
+    </div>
+  </section>`;
+}
+
 /* ---------------- nhận xét cuối ngày ---------------- */
 function review(m) {
   const r = m.review;
@@ -338,7 +369,7 @@ function review(m) {
         <p class="review__lead">${busy ? "Claude đang nhìn lại các bữa của " + m.dayTitle + "…" : "Nhờ Claude nhìn lại các bữa của " + m.dayTitle + " và gợi ý cho ngày mai."}</p>
         <button class="btn btn--ghost" data-act="review" ${busy ? raw('disabled aria-busy="true"') : ""}>${ico("i-sprout", "icon--md")}${busy ? "Đang nhận xét…" : "Nhận xét " + m.dayTitle}</button>
       </div>
-      <p class="fine">Chỉ gửi tên món và số calo, không gửi ảnh.</p>
+      <p class="fine">Chỉ gửi tên món, số calo và buổi tập, không gửi ảnh.</p>
     </section>`;
   }
   const rv = r.rv;
@@ -360,7 +391,7 @@ function review(m) {
       </div>` : ""}
     </div>
     <div class="sug-foot">
-      <p class="fine">${r.stale ? "Bữa ăn đã đổi sau lần nhận xét này. " : ""}Gợi ý ăn uống thông thường, không thay lời khuyên của bác sĩ.</p>
+      <p class="fine">${r.stale ? "Nhật ký đã đổi sau lần nhận xét này. " : ""}Gợi ý ăn uống thông thường, không thay lời khuyên của bác sĩ.</p>
       ${r.canAsk ? html`<button class="sug-more" data-act="review" ${busy ? raw('disabled aria-busy="true"') : ""}>${busy ? "Đang xem…" : "Nhận xét lại"}</button>` : ""}
     </div>
   </section>`;
@@ -436,6 +467,7 @@ export function viewToday() {
     ${hints(m)}
     ${suggest(m)}
     ${meals(m)}
+    ${move(m)}
     ${review(m)}
     ${usual(m)}
     ${water(m)}`;
